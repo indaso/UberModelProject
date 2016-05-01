@@ -19,6 +19,7 @@ globals
   work          ;; agentset containing the patches that are work
   arcade        ;; agentset containing the patches that are arcade
   locations     ;; list containing possible locations
+  surge-pricing-active? ;;
 
   ;;points
   pickup-points      ;; list of x,y points containing places where you can pick up
@@ -45,6 +46,7 @@ ubers-own [
 
 people-own [
  location
+ preferred-car
 ]
 
 patches-own
@@ -267,9 +269,34 @@ to setup-ubers  ;; turtle procedure
     [set heading 270]   ;; on road heading right
   ]
 end
+
 ;; Find a road patch without any turtles on it and place the turtle there.
 to put-on-empty-road  ;; turtle procedure
   move-to one-of roads with [not any? cars-on self]
+end
+
+to pick-car-type
+  ifelse (preferred-car = "Uber")
+  []
+  [
+    if(surge-pricing-active?)
+    [
+      if(uber-rate > taxi-rate)
+      []
+      ]
+    ]
+end
+
+;; Assign a taxi or Uber to a rider
+to assign-car
+  if (random 10 < uber-preference)
+  [ set preferred-car "Uber" ]
+  pick-car-type
+end
+
+;; bring the car to user, stub for Jenny
+to bring-car-to-user
+
 end
 
 to setup-locations
@@ -474,7 +501,7 @@ end
 ;; This procedure checks the variable green-light-up? at each intersection and sets the
 ;; traffic lights to have the green light up or the green light to the left.
 to set-signal-colors  ;; intersection (patch) procedure
-  ifelse power?
+  ifelse ridesharing-allowed?
   [
     ifelse green-light-up? [
       if (pxcor != 0) [ask patch-at -1 0 [ set pcolor red ]]
@@ -598,10 +625,10 @@ ticks
 30.0
 
 PLOT
-453
-377
-671
-541
+675
+351
+893
+515
 Average Wait Time of Cars
 Time
 Average Wait
@@ -616,10 +643,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot mean [wait-time] of taxis"
 
 PLOT
-228
-377
-444
-542
+676
+181
+892
+346
 Average Speed of Cars
 Time
 Average Speed
@@ -634,36 +661,36 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot mean [speed] of taxis"
 
 SWITCH
-12
-107
-107
-140
-power?
-power?
+10
+219
+197
+252
+ridesharing-allowed?
+ridesharing-allowed?
 0
 1
 -1000
 
 SLIDER
-12
-71
-293
-104
+10
+117
+184
+150
 num-taxis
 num-taxis
 1
 400
-191
+50
 1
 1
 NIL
 HORIZONTAL
 
 PLOT
-5
-376
-219
-540
+676
+10
+890
+174
 Stopped Cars
 Time
 Stopped Cars
@@ -678,10 +705,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot num-cars-stopped"
 
 BUTTON
-221
-184
-285
-217
+225
+305
+289
+338
 Go
 go
 T
@@ -695,10 +722,10 @@ NIL
 1
 
 BUTTON
-208
-35
-292
-68
+206
+81
+290
+114
 Setup
 setup
 NIL
@@ -712,25 +739,25 @@ NIL
 1
 
 SLIDER
-11
-177
-165
-210
+9
+289
+163
+322
 speed-limit
 speed-limit
 0.1
 1
-1
+0.9
 0.1
 1
 NIL
 HORIZONTAL
 
 MONITOR
-205
-132
-310
-177
+209
+253
+314
+298
 Current Phase
 phase
 3
@@ -738,10 +765,10 @@ phase
 11
 
 SLIDER
-11
-143
-165
-176
+9
+255
+163
+288
 ticks-per-cycle
 ticks-per-cycle
 1
@@ -753,10 +780,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-146
-256
-302
-289
+142
+417
+298
+450
 current-phase
 current-phase
 0
@@ -768,10 +795,10 @@ current-phase
 HORIZONTAL
 
 BUTTON
-9
-292
-143
-325
+5
+453
+139
+486
 Change light
 change-current
 NIL
@@ -785,21 +812,21 @@ NIL
 1
 
 SWITCH
-9
-256
-144
-289
+5
+417
+140
+450
 current-auto?
 current-auto?
-0
+1
 1
 -1000
 
 BUTTON
-145
-292
-300
-325
+141
+453
+296
+486
 Select intersection
 choose-current
 T
@@ -811,6 +838,96 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+11
+85
+183
+118
+num-taxis
+num-taxis
+0
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+9
+330
+181
+363
+uber-rate
+uber-rate
+5
+12
+5
+0.01
+1
+$
+HORIZONTAL
+
+SLIDER
+10
+372
+182
+405
+taxi-rate
+taxi-rate
+8
+18
+8
+0.01
+1
+$
+HORIZONTAL
+
+SLIDER
+11
+44
+183
+77
+num-people
+num-people
+0
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+11
+164
+124
+197
+cost-tolerance
+cost-tolerance
+1
+10
+5
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+140
+163
+312
+196
+uber-preference
+uber-preference
+0
+10
+5
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
