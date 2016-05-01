@@ -24,8 +24,8 @@ globals
   pickup-points      ;; list of x,y points containing places where you can pick up
 ]
 
-breed [taxis car]
-breed [ubers car]
+breed [taxis taxi]
+breed [ubers uber]
 breed [people person]
 breed [ cars car ]
 
@@ -59,6 +59,8 @@ patches-own
   my-phase        ;; the phase for the intersection.  -1 for non-intersection patches.
   auto?           ;; whether or not this intersection will switch automatically.
                   ;; false for non-intersection patches.
+  direction       ;; list of ways a car can be oriented, roads have 1, intersections, may have 2
+                  ;; non-roads have 0
 ]
 
 
@@ -137,6 +139,7 @@ to setup-patches
     set my-column -1
     set my-phase -1
     set pcolor brown + 3
+    set direction []
   ]
 
   ;; initialize the global variables that hold patch agentsets
@@ -145,8 +148,66 @@ to setup-patches
   set intersections roads with
     [(pxcor mod grid-x-inc = 0) and (pycor mod grid-y-inc = 0)]
 
+  ;;set direction that a car my drive on the road
+  ask roads [
+    ifelse (pxcor mod 6 = 0)
+    [ ;; traveling vertically
+      ifelse ((pxcor / 6 = 0) or (pxcor / 6 = 2) or (pxcor / 6 = 4))
+      [set direction [180]]    ;; on road heading down
+      [set direction [0]]   ;; on road heading up
+    ] [ ;; traveling horizontally
+    ifelse ((pycor / 6 = 0) or (pycor / 6 = 2) or (pycor / 6 = 4))
+    [set direction [90]]    ;; on road heading left
+    [set direction [270]]   ;; on road heading right
+    ]
+  ]
+
+  ;; set inner intersections to have multiple directions so cars will turn
+  ;; outer intersections should turn so cars dont exit model
+  ask intersections [
+    if ((pxcor / 6 = 2) or (pxcor / 6 = 4))
+      [
+        if ((pycor / 6 = 1) or (pycor / 6 = 3))
+            [set direction [180 270]]
+        if ((pycor / 6 = 2) or (pycor / 6 = 4))
+            [set direction [180 90]]
+        if (pycor / 6 = 0)
+            [set direction [90]]
+         if (pycor / 6 = 5)
+            [set direction [270 180]]
+      ]
+    if ((pxcor / 6 = 1) or (pxcor / 6 = 3))
+     [
+        if ((pycor / 6 = 1) or (pycor / 6 = 3))
+            [set direction [0 270]]
+        if ((pycor / 6 = 2) or (pycor / 6 = 4))
+            [set direction [0 90]]
+        if (pycor / 6 = 0)
+            [set direction [90 0]]
+        if (pycor / 6 = 5)
+            [set direction [270]]
+      ]
+     if (pxcor / 6 = 0)
+     [
+        if (pycor / 6 = 0)
+           [set direction [90]]
+        if (pycor / 6 = 5)
+           [set direction [180]]
+        if ((pycor / 6 = 2) or (pycor / 6 = 4))
+           [set direction [180 90]]
+      ]
+     if (pxcor / 6 = 5)
+     [
+         if (pycor / 6 = 5)
+          [set direction [270]]
+         if (pycor / 6 = 0)
+          [set direction [0]]
+         if ((pycor / 6 = 1) or (pycor / 6 = 3))
+          [set direction [0 270]]
+     ]
+  ]
+
   ask roads [ set pcolor white ]
-  print intersections
   setup-intersections
 end
 
@@ -171,6 +232,7 @@ to setup-taxis  ;; turtle procedure
   set speed 0
   set wait-time 0
   set color yellow
+  set has_passenger? false
   put-on-empty-road
 
   ;;set heading in directions
@@ -239,16 +301,16 @@ to setup-locations
 end
 
 ;; set up initial positions of persons
-to setup-people-pos [id]
-  let person-x [xcor] of person id
-  let person-y [ycor] of person id
-    let notInRoad false
-    while [not notInRoad] [  ;; while the person is in the road
-      set notInRoad true
-      setxy floor(random-xcor) floor(random-ycor) ;; give random point
+to setup-people-pos [per]
+    let in-road true
+    ;; if in road, keep looping until coord is found that is not
+    ;; in the road
+    while [in-road] [
+      set in-road false
+      setxy floor(random-xcor) floor(random-ycor)
       ask roads [
-        if (person-x = pxcor and person-y = pycor) ;; check if the person is in the road
-        [set notInRoad false]
+        if ([xcor] of turtle per = pxcor and [ycor] of turtle per = pycor)
+        [set in-road true]
       ]
     ]
 end
@@ -312,19 +374,38 @@ to go
   ;; record data for plotting, and set the color of the turtles to an appropriate color
   ;; based on their speed
   ask taxis [
-    set-car-speed
-    fd speed
-    record-data
+    ifelse (has_passenger?) ;;if true move towards destination
+    [move-toward-destination "arcade"]
+    [move-random]
   ]
   ask ubers [
-    set-car-speed
-    fd speed
-    record-data
+    move-random
   ]
 
   ;; update the phase and the global clock
   next-phase
   tick
+end
+
+to move-toward-destination [dest]
+    set-car-speed
+    fd speed
+    record-data
+end
+
+to move-random
+    set-car-speed
+    ;;check if car will pass an intersection and randomly change direction turtle is heading
+    let step 1
+    while [step <= speed] [
+       ;; set direction of heading
+       ifelse ((length direction) = 2)
+       [set heading (item random 2 direction)]
+       [set heading (item 0 direction)]
+       fd 1
+       set step (step + 1)
+    ]
+    record-data
 end
 
 to choose-current
