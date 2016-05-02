@@ -415,10 +415,7 @@ to-report get-closest-uber
   let closest-uber item 0 uber-driver-list
   foreach uber-driver-list [
     let uber-driver ?
-    let xdist [xcor] of uber-driver - xcor
-    let ydist [ycor] of uber-driver - ycor
-    let dist (xdist * xdist) + (ydist * ydist)
-    set dist sqrt dist
+    let dist distancexy [xcor] of uber-driver [ycor] of uber-driver
     if(dist < mindist)
     [
       set mindist dist
