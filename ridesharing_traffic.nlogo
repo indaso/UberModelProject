@@ -24,7 +24,6 @@ globals
   ;;points
   pickup-points      ;; list of x,y points containing places where you can pick up
 
-  uber-rider-list    ;; list of uber riders waiting for an empty uber
   uber-driver-list   ;; list of uber drivers waiting for a rider
 ]
 
@@ -50,7 +49,8 @@ ubers-own [
 people-own [
  location
  preferred-car
- want-uber?
+ want-car?
+ in-car?
 ]
 
 patches-own
@@ -87,8 +87,9 @@ to setup
   setup-patches
   setup-locations
   setup-pickup-points
-  make-current one-of intersections
-  label-current
+  set locations [ "campus" "library" "club" "work" "arcade" ]
+
+
   set-default-shape taxis "car"
   set-default-shape ubers "car"
   set-default-shape cars "car"
@@ -113,7 +114,7 @@ to setup
     let p-id who
     set color red
     setup-people-pos p-id
-    set want-uber? false
+    set want-car? false
   ]
 
   initialize-demand
@@ -130,6 +131,7 @@ to setup-globals
   set current-light nobody ;; just for now, since there are no lights yet
   set phase 0
   set num-cars-stopped 0
+  set uber-driver-list []
 
   ;; don't make acceleration 0.1 since we could get a rounding error and end up on a patch boundary
   set acceleration 0.099
@@ -261,39 +263,38 @@ to setup-ubers
     [set heading 270]
     [set heading 90]
   ]
+
+  set uber-driver-list lput self uber-driver-list
+
 end
 
-;; Find a road patch without any turtles on it and place the turtle there.
+;; Find a road patch without any cars on it and place the car there.
 to put-on-empty-road  ;; turtle procedure
   move-to one-of roads with [not any? cars-on self]
 end
 
+;; look at user's preference and decide what car they want
 to pick-car-type
   if (preferred-car = "Uber")
   [
     ifelse(surge-pricing-active?)
     [
       ifelse(uber-rate > taxi-rate)
-      [ set preferred-car "Taxi" ]
-      [
-        set preferred-car "Uber"
-        set want-uber? true
-      ]
+      [ set preferred-car "Taxi"]
+      [ set preferred-car "Uber" ]
     ]
-    [ set preferred-car "Uber"
-      set want-uber? true
-      ]
+    [ set preferred-car "Uber" ]
   ]
-
 end
 
 ;; Assign a taxi or Uber to a rider
-to assign-car
+to assign-car-preference
   ifelse (random 10 < uber-preference)
   [ set preferred-car "Uber" ]
   [ set preferred-car "Taxi" ]
   if (random 10 < 1)
-  [ set preferred-car "Other" ]
+  [ set preferred-car "Other"
+    set want-car? false ]
   pick-car-type
 end
 
@@ -304,17 +305,11 @@ end
 
 ;; initialize random num-people to wanting an uber
 to initialize-demand
-  set uber-rider-list []
   ask n-of (num-people / 2) people
   [
     initialize-random-location
-    assign-car
-  ]
-
-  ask people
-  [
-    if(want-uber?)
-    [ set uber-rider-list lput (person who) uber-rider-list]
+    assign-car-preference
+    set want-car? true
   ]
 
 end
@@ -322,11 +317,11 @@ end
 ;; set random location
 to initialize-random-location
   let loc_index random 5
-  if(loc_index = 0) [ set location campus ]
-  if(loc_index = 1) [ set location library ]
-  if(loc_index = 2) [ set location club ]
-  if(loc_index = 3) [ set location work ]
-  if(loc_index = 4) [ set location arcade ]
+  set location item loc_index locations
+end
+
+to-report get-loc-index [loc]
+  report position loc locations
 end
 
 to setup-locations
@@ -390,20 +385,21 @@ end
 
 ;; move the person to the pickup point to get a ride
 to move-to-pickup-point
-  let point get-min-dist-point
+  let point get-closest-pickup-point
   setxy item 0 point item 1 point
 end
 
 ;; find the closest pickup point to the person
-to-report get-min-dist-point
+to-report get-closest-pickup-point
   let mindist 1000000
   let closest-point []
   foreach pickup-points [
     let point ?
-    let xdist item 0 point - xcor
-    let ydist item 1 point - ycor
-    let dist (xdist * xdist) + (ydist * ydist)
-    set dist sqrt dist
+    ;let xdist item 0 point - xcor
+    ;let ydist item 1 point - ycor
+    ;let dist (xdist * xdist) + (ydist * ydist)
+    ;set dist sqrt dist
+    let dist distancexy item 0 point item 1 point
     if(dist < mindist)
     [
       set mindist dist
@@ -413,13 +409,33 @@ to-report get-min-dist-point
   report closest-point
 end
 
+;; get closest uber
+to-report get-closest-uber
+  let mindist 1000000
+  let closest-uber item 0 uber-driver-list
+  foreach uber-driver-list [
+    let uber-driver ?
+    let xdist [xcor] of uber-driver - xcor
+    let ydist [ycor] of uber-driver - ycor
+    let dist (xdist * xdist) + (ydist * ydist)
+    set dist sqrt dist
+    if(dist < mindist)
+    [
+      set mindist dist
+      set closest-uber uber-driver
+    ]
+  ]
+  create-link-with closest-uber
+  report closest-uber
+end
+
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Runtime Procedures ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Run the simulation
 to go
-  update-current
+
   ;; have the intersections change their color
   set-signals
   set num-cars-stopped 0
@@ -438,9 +454,18 @@ to go
     [move-random]
   ]
 
+  ;; ask potential riders to move to pickup point
+  ask people with [want-car?] [
+      move-to-pickup-point
+  ]
+
   ;; update the phase and the global clock
   next-phase
   tick
+end
+
+to call-uber
+
 end
 
 to move-toward-destination [dest_ind]
@@ -500,59 +525,7 @@ to-report possible-turns [all-turns prev]
   report turnlist
 end
 
-to choose-current
-  if mouse-down?
-  [
-    let x-mouse mouse-xcor
-    let y-mouse mouse-ycor
-    if [intersection?] of patch x-mouse y-mouse
-    [
-      update-current
-      unlabel-current
-      make-current patch x-mouse y-mouse
-      label-current
-      stop
-    ]
-  ]
-end
 
-;; Set up the current light and the interface to change it.
-to make-current [light]
-  set current-light light
-  set current-phase [my-phase] of current-light
-  set current-auto? [auto?] of current-light
-end
-
-;; update the variables for the current light
-to update-current
-  ask current-light [
-    set my-phase current-phase
-    set auto? current-auto?
-  ]
-end
-
-;; label the current light
-to label-current
-  ask current-light
-  [
-    ask patch-at -1 1
-    [
-      set plabel-color black
-      set plabel "current"
-    ]
-  ]
-end
-
-;; unlabel the current light (because we've chosen a new one)
-to unlabel-current
-  ask current-light
-  [
-    ask patch-at -1 1
-    [
-      set plabel ""
-    ]
-  ]
-end
 
 ;; have the traffic lights change color if phase equals each intersections' my-phase
 to set-signals
@@ -642,13 +615,7 @@ to record-data  ;; turtle procedure
   [ set wait-time 0 ]
 end
 
-to change-current
-  ask current-light
-  [
-    set green-light-up? (not green-light-up?)
-    set-signal-colors
-  ]
-end
+
 
 ;; cycles phase to the next appropriate value
 to next-phase
@@ -659,14 +626,32 @@ to next-phase
 end
 
 
+;; test methods
+
+to test-get-closest-uber
+  ask person 131 [ setxy 1 29 set want-car? true set preferred-car "Uber" ]
+  ask uber 16 [ setxy 6 30 ]
+  let pickup-point []
+  let closest-uber one-of ubers
+  ask person 131 [
+    set pickup-point get-closest-pickup-point
+    let point_index position pickup-point pickup-points
+    set closest-uber get-closest-uber
+    ask closest-uber [
+      set destination point_index
+      set has_destination "CALLED"
+      ]
+  ]
+end
+
 ; Copyright 2003 Uri Wilensky.
 ; See Info tab for full copyright and license.
 @#$#@#$#@
 GRAPHICS-WINDOW
 326
 10
-668
-373
+667
+372
 -1
 -1
 10.71
@@ -744,8 +729,8 @@ SLIDER
 num-ubers
 num-ubers
 1
-400
-11
+100
+26
 1
 1
 NIL
@@ -818,17 +803,6 @@ speed-limit
 NIL
 HORIZONTAL
 
-MONITOR
-209
-253
-314
-298
-Current Phase
-phase
-3
-1
-11
-
 SLIDER
 9
 255
@@ -838,71 +812,11 @@ ticks-per-cycle
 ticks-per-cycle
 1
 100
-20
+28
 1
 1
 NIL
 HORIZONTAL
-
-SLIDER
-142
-417
-298
-450
-current-phase
-current-phase
-0
-99
-0
-1
-1
-%
-HORIZONTAL
-
-BUTTON
-5
-453
-139
-486
-Change light
-change-current
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SWITCH
-5
-417
-140
-450
-current-auto?
-current-auto?
-0
-1
--1000
-
-BUTTON
-141
-453
-296
-486
-Select intersection
-choose-current
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 SLIDER
 11
@@ -913,7 +827,7 @@ num-taxis
 num-taxis
 0
 100
-10
+16
 1
 1
 NIL
@@ -928,7 +842,7 @@ uber-rate
 uber-rate
 5
 12
-5
+7.8
 0.01
 1
 $
@@ -943,7 +857,7 @@ taxi-rate
 taxi-rate
 8
 18
-8
+12.14
 0.01
 1
 $
@@ -958,7 +872,7 @@ num-people
 num-people
 0
 100
-50
+100
 1
 1
 NIL
@@ -988,7 +902,7 @@ uber-preference
 uber-preference
 0
 10
-0
+10
 1
 1
 NIL
