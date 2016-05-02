@@ -115,6 +115,7 @@ to setup
     set color red
     setup-people-pos p-id
     set want-car? false
+    set in-car? false
   ]
 
   initialize-demand
@@ -230,8 +231,8 @@ to setup-taxis
   set speed 0
   set wait-time 0
   set color yellow
-  set has_passenger? true
-  set destination 0
+  set has_passenger? false
+  set destination -1
   put-on-empty-road
 
   ifelse (xcor mod 6 = 0)   ;;set heading in directions
@@ -325,26 +326,11 @@ to-report get-loc-index [loc]
 end
 
 to setup-locations
-  set campus patches with
-  [
-    pxcor < min-pxcor + floor(grid-x-inc) and pxcor > min-pxcor and pycor < min-pycor + floor(grid-y-inc) and pycor > min-pycor
-  ]
-  set arcade patches with
-  [
-    pxcor < min-pxcor + floor(grid-x-inc) and pxcor > min-pxcor and pycor < max-pycor and pycor > max-pycor - floor(grid-y-inc)
-  ]
-  set club patches with
-  [
-    pxcor < max-pxcor and pxcor >= max-pxcor - floor(grid-x-inc - 1) and pycor < min-pycor + floor(grid-y-inc) and pycor > min-pycor
-  ]
-  set library patches with
-  [
-    pxcor < max-pxcor and pxcor >= max-pxcor - floor(grid-x-inc - 1) and pycor < max-pycor and pycor > max-pycor - floor(grid-y-inc)
-  ]
-  set work patches with
-  [
-    pxcor < 18 and pxcor > 18 - 6 and pycor < 18 and pycor > 18 - 6
-  ]
+  set campus patches with [pxcor < min-pxcor + floor(grid-x-inc) and pxcor > min-pxcor and pycor < min-pycor + floor(grid-y-inc) and pycor > min-pycor]
+  set arcade patches with [pxcor < min-pxcor + floor(grid-x-inc) and pxcor > min-pxcor and pycor < max-pycor and pycor > max-pycor - floor(grid-y-inc)]
+  set club patches with [pxcor < max-pxcor and pxcor >= max-pxcor - floor(grid-x-inc - 1) and pycor < min-pycor + floor(grid-y-inc) and pycor > min-pycor]
+  set library patches with [pxcor < max-pxcor and pxcor >= max-pxcor - floor(grid-x-inc - 1) and pycor < max-pycor and pycor > max-pycor - floor(grid-y-inc)]
+  set work patches with [pxcor < 18 and pxcor > 18 - 6 and pycor < 18 and pycor > 18 - 6]
   ask campus [ set pcolor orange ]
   ask arcade [ set pcolor blue ]
   ask club [ set pcolor green - 3]
@@ -432,10 +418,53 @@ end
 
 ;; Run the simulation
 to go
-
   ;; have the intersections change their color
   set-signals
   set num-cars-stopped 0
+
+
+  ask people [
+   ;testing code------
+   ;;set want-car? true
+   ;;set preferred-car "Taxi"
+   if (want-car?) [    ;; want-car?=true -->Person is waiting for car and check if car is nearby
+     let personid who
+
+     ifelse (preferred-car = "Taxi") [
+       let incab false
+       ask taxis in-radius 4 [ ;;if there is a taxi nearby --> assign person to be in taxi and taxi to have person
+         if (not has_passenger?) [
+             assign-taxi personid
+             set incab true
+           stop
+         ]
+       ]
+       if incab [
+        set want-car? false
+        set in-car? true
+        set hidden? true
+       ]
+     ] [ ;;preferred-car = "Uber"
+
+     ]
+   ]
+
+   if ((not want-car?) and (not in-car?)) [
+        ;;dynamic ask of demand --> assign-car-preference
+          ;; ask potential riders to move to pickup point
+           ; move-to-pickup-point
+        if (preferred-car = "Uber") [
+          ;;assign user an uber driver
+        ]
+        ;;if [preferred-car = "Taxi"] --> Wait for taxi
+        ;;if [preferred-car = "None"] --> Do Nothing
+   ]
+
+   if (in-car?) [
+     ;;if arrived at destination --> "Drop off person"
+   ]
+  ]
+
 
   ;; set the turtles speed for this time thru the procedure, move them forward their speed,
   ;; record data for plotting, and set the color of the turtles to an appropriate color
@@ -451,11 +480,6 @@ to go
     [move-random]
   ]
 
-  ;; ask potential riders to move to pickup point
-  ask people with [want-car?] [
-      move-to-pickup-point
-  ]
-
   ;; update the phase and the global clock
   next-phase
   tick
@@ -465,6 +489,13 @@ to call-uber
 
 end
 
+to assign-taxi [personid]
+  create-link-with person personid
+  set has_passenger? true
+  set destination [location] of person personid
+end
+
+;; Uber and Taxi Related Procedures for GO ----------------------------------------
 to move-toward-destination [dest_ind]
    set-car-speed
    let step 1
@@ -727,7 +758,7 @@ num-ubers
 num-ubers
 1
 100
-26
+1
 1
 1
 NIL
