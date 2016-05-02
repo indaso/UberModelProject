@@ -23,6 +23,9 @@ globals
 
   ;;points
   pickup-points      ;; list of x,y points containing places where you can pick up
+
+  uber-rider-list    ;; list of uber riders waiting for an empty uber
+  uber-driver-list   ;; list of uber drivers waiting for a rider
 ]
 
 breed [taxis taxi]
@@ -47,6 +50,7 @@ ubers-own [
 people-own [
  location
  preferred-car
+ want-uber?
 ]
 
 patches-own
@@ -103,13 +107,16 @@ to setup
 
   ;; give the turtles an initial speed
   ask taxis [ set-car-speed ]
-
-  create-people 50
+  set surge-pricing-active? false
+  create-people num-people
   ask people [
     let p-id who
     set color red
     setup-people-pos p-id
+    set want-uber? false
   ]
+
+  initialize-demand
 
   reset-ticks
 end
@@ -276,27 +283,64 @@ to put-on-empty-road  ;; turtle procedure
 end
 
 to pick-car-type
-  ifelse (preferred-car = "Uber")
-  []
+  if (preferred-car = "Uber")
   [
-    if(surge-pricing-active?)
+    ifelse(surge-pricing-active?)
     [
-      if(uber-rate > taxi-rate)
-      []
+      ifelse(uber-rate > taxi-rate)
+      [ set preferred-car "Taxi" ]
+      [
+        set preferred-car "Uber"
+        set want-uber? true
       ]
     ]
+    [ set preferred-car "Uber"
+      set want-uber? true
+      ]
+  ]
+
 end
 
 ;; Assign a taxi or Uber to a rider
 to assign-car
-  if (random 10 < uber-preference)
+  ifelse (random 10 < uber-preference)
   [ set preferred-car "Uber" ]
+  [ set preferred-car "Taxi" ]
+  if (random 10 < 1)
+  [ set preferred-car "Other" ]
   pick-car-type
 end
 
 ;; bring the car to user, stub for Jenny
 to bring-car-to-user
 
+end
+
+;; initialize random num-people to wanting an uber
+to initialize-demand
+  set uber-rider-list []
+  ask n-of (num-people / 2) people
+  [
+    initialize-random-location
+    assign-car
+  ]
+
+  ask people
+  [
+    if(want-uber?)
+    [ set uber-rider-list lput (person who) uber-rider-list]
+  ]
+
+end
+
+;; set random location
+to initialize-random-location
+  let loc_index random 5
+  if(loc_index = 0) [ set location campus ]
+  if(loc_index = 1) [ set location library ]
+  if(loc_index = 2) [ set location club ]
+  if(loc_index = 3) [ set location work ]
+  if(loc_index = 4) [ set location arcade ]
 end
 
 to setup-locations
@@ -356,7 +400,6 @@ to setup-pickup-points
       set point []
     ]
   ]
-  show pickup-points
 end
 
 ;; move the person to the pickup point to get a ride
@@ -747,7 +790,7 @@ speed-limit
 speed-limit
 0.1
 1
-0.9
+1
 0.1
 1
 NIL
@@ -818,7 +861,7 @@ SWITCH
 450
 current-auto?
 current-auto?
-1
+0
 1
 -1000
 
