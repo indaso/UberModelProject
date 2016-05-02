@@ -42,8 +42,8 @@ taxis-own [
 
 ubers-own [
   speed             ;; the speed of the turtle
-  has_passenger?    ;; true if taxi has passenger false if not
-  destination       ;; destination
+  has_destination   ;; "CALLED", "HAS_PASSENGER", "NO_PASSENGER"
+  destination              ;; destination
   wait-time         ;; the amount of time since the last time a turtle has moved
 ]
 
@@ -94,12 +94,12 @@ to setup
   set-default-shape cars "car"
   set-default-shape people "person"
   ;; Now create the turtles and have each created turtle call the functions setup-cars and set-car-color
-  create-taxis 20
+  create-taxis num-taxis
   [
     setup-taxis
     record-data
   ]
-  create-ubers 20
+  create-ubers num-ubers
   [
     setup-ubers
     record-data
@@ -162,57 +162,44 @@ to setup-patches
     ifelse (pxcor mod 6 = 0)
     [ ;; traveling vertically
       ifelse ((pxcor / 6 = 0) or (pxcor / 6 = 2) or (pxcor / 6 = 4))
-      [set direction [180]]    ;; on road heading down
-      [set direction [0]]   ;; on road heading up
+      [set direction [0 180]]    ;; on road heading down
+      [set direction [0 180]]   ;; on road heading up
     ] [ ;; traveling horizontally
     ifelse ((pycor / 6 = 0) or (pycor / 6 = 2) or (pycor / 6 = 4))
-    [set direction [90]]    ;; on road heading left
-    [set direction [270]]   ;; on road heading right
+    [set direction [90 270]]    ;; on road heading left
+    [set direction [90 270]]   ;; on road heading right
     ]
   ]
 
   ;; set inner intersections to have multiple directions so cars will turn
   ;; outer intersections should turn so cars dont exit model
   ask intersections [
-    if ((pxcor / 6 = 2) or (pxcor / 6 = 4))
+    if ((pxcor / 6 = 2) or (pxcor / 6 = 4) or (pxcor / 6 = 1) or (pxcor / 6 = 3))
       [
-        if ((pycor / 6 = 1) or (pycor / 6 = 3))
-            [set direction [180 270]]
-        if ((pycor / 6 = 2) or (pycor / 6 = 4))
-            [set direction [180 90]]
+        if ((pycor / 6 = 1) or (pycor / 6 = 3) or (pycor / 6 = 2) or (pycor / 6 = 4))
+            [set direction [0 90 180 270]]
         if (pycor / 6 = 0)
-            [set direction [90]]
+            [set direction [0 90 270]]
          if (pycor / 6 = 5)
-            [set direction [270 180]]
-      ]
-    if ((pxcor / 6 = 1) or (pxcor / 6 = 3))
-     [
-        if ((pycor / 6 = 1) or (pycor / 6 = 3))
-            [set direction [0 270]]
-        if ((pycor / 6 = 2) or (pycor / 6 = 4))
-            [set direction [0 90]]
-        if (pycor / 6 = 0)
-            [set direction [90 0]]
-        if (pycor / 6 = 5)
-            [set direction [270]]
+            [set direction [90 180 270]]
       ]
      if (pxcor / 6 = 0)
      [
-        if (pycor / 6 = 0)
-           [set direction [90]]
+        if ((pycor / 6 = 1) or (pycor / 6 = 3) or (pycor / 6 = 2) or (pycor / 6 = 4))
+           [set direction [0 90 180]]
         if (pycor / 6 = 5)
-           [set direction [180]]
-        if ((pycor / 6 = 2) or (pycor / 6 = 4))
            [set direction [180 90]]
+        if (pycor / 6 = 0)
+           [set direction [0 90]]
       ]
      if (pxcor / 6 = 5)
      [
-         if (pycor / 6 = 5)
-          [set direction [270]]
-         if (pycor / 6 = 0)
-          [set direction [0]]
-         if ((pycor / 6 = 1) or (pycor / 6 = 3))
-          [set direction [0 270]]
+        if ((pycor / 6 = 1) or (pycor / 6 = 3) or (pycor / 6 = 2) or (pycor / 6 = 4))
+           [set direction [0 180 270]]
+        if (pycor / 6 = 5)
+           [set direction [180 270]]
+        if (pycor / 6 = 0)
+           [set direction [0 270]]
      ]
   ]
 
@@ -237,43 +224,42 @@ to setup-intersections
 end
 
 ;; Initialize the turtle variables to appropriate values and place the turtle on an empty road patch.
-to setup-taxis  ;; turtle procedure
+to setup-taxis
   set speed 0
   set wait-time 0
   set color yellow
-  set has_passenger? false
+  set has_passenger? true
+  set destination 0
   put-on-empty-road
 
-  ;;set heading in directions
-  ifelse (xcor mod 6 = 0)
+  ifelse (xcor mod 6 = 0)   ;;set heading in directions
   [ ;; traveling vertically
-    ifelse ((xcor / 6 = 0) or (xcor / 6 = 2) or (xcor / 6 = 4))
-    [set heading 180]    ;; on road heading down
-    [set heading 0]   ;; on road heading up
+    ifelse (random 2 = 0)
+    [set heading 0]
+    [set heading 180]
   ] [ ;; traveling horizontally
-    ifelse ((ycor / 6 = 0) or (ycor / 6 = 2) or (ycor / 6 = 4))
-    [set heading 90]    ;; on road heading left
-    [set heading 270]   ;; on road heading right
+    ifelse (random 2 = 0)
+    [set heading 270]
+    [set heading 90]
   ]
 end
 
 ;; Initialize the turtle variables to appropriate values and place the turtle on an empty road patch.
-to setup-ubers  ;; turtle procedure
+to setup-ubers
   set speed 0
   set wait-time 0
   set color black
   put-on-empty-road
 
-  ;;set heading in directions
-  ifelse (xcor mod 6 = 0)
+  ifelse (xcor mod 6 = 0)   ;;set heading in directions
   [ ;; traveling vertically
-    ifelse ((xcor / 6 = 0) or (xcor / 6 = 2) or (xcor / 6 = 4))
-    [set heading 180]    ;; on road heading down
-    [set heading 0]   ;; on road heading up
+    ifelse (random 2 = 0)
+    [set heading 0]
+    [set heading 180]
   ] [ ;; traveling horizontally
-    ifelse ((ycor / 6 = 0) or (ycor / 6 = 2) or (ycor / 6 = 4))
-    [set heading 90]    ;; on road heading left
-    [set heading 270]   ;; on road heading right
+    ifelse (random 2 = 0)
+    [set heading 270]
+    [set heading 90]
   ]
 end
 
@@ -433,9 +419,7 @@ end
 
 ;; Run the simulation
 to go
-
   update-current
-
   ;; have the intersections change their color
   set-signals
   set num-cars-stopped 0
@@ -445,11 +429,13 @@ to go
   ;; based on their speed
   ask taxis [
     ifelse (has_passenger?) ;;if true move towards destination
-    [move-toward-destination "arcade"]
+    [move-toward-destination destination]
     [move-random]
   ]
   ask ubers [
-    move-random
+    ifelse (has_destination = "CALLED" or has_destination = "HAS_PASSENGER")
+    [move-toward-destination destination]
+    [move-random]
   ]
 
   ;; update the phase and the global clock
@@ -457,10 +443,38 @@ to go
   tick
 end
 
-to move-toward-destination [dest]
-    set-car-speed
-    fd speed
-    record-data
+to move-toward-destination [dest_ind]
+   set-car-speed
+   let step 1
+   while [step <= speed] [
+     let turnlist (possible-turns direction heading)
+     ;;Case 1: If not intersection, drive straight
+     ifelse ((length turnlist) = 1) [
+       set heading (item 0 turnlist)
+     ] [ ;;Case 2: At intersection, choose a random path that takes you closer to your destination
+       let closerturns closer_turns xcor ycor dest_ind
+       let choices []
+       foreach closerturns [
+         if (member? ? turnlist) [set choices lput ? choices]
+       ]
+       if (not (empty? choices)) [set heading item (random length choices) choices]
+     ]
+     fd 1
+     set step (step + 1)
+   ]
+end
+
+to-report closer_turns [x y dest_ind]
+  let dest_x (item 0 (item dest_ind pickup-points))
+  let dest_y (item 1 (item dest_ind pickup-points))
+  let turns []
+
+  if (dest_x > x) [ set turns lput 90 turns]
+  if (dest_x < x) [ set turns lput 270 turns ]
+  if (dest_y > y) [ set turns lput 0 turns ]
+  if (dest_y < y) [ set turns lput 180 turns ]
+
+  report turns
 end
 
 to move-random
@@ -469,13 +483,21 @@ to move-random
     let step 1
     while [step <= speed] [
        ;; set direction of heading
-       ifelse ((length direction) = 2)
-       [set heading (item random 2 direction)]
-       [set heading (item 0 direction)]
+       let turnlist (possible-turns direction heading)
+       set heading (item (random length turnlist) turnlist)
        fd 1
        set step (step + 1)
     ]
     record-data
+end
+
+to-report possible-turns [all-turns prev]
+  let turnlist []
+  foreach all-turns [
+   if ((? + 180) != prev and (? - 180) != prev) ;;don't let cars reverse directions
+   [set turnlist lput ? turnlist]
+  ]
+  report turnlist
 end
 
 to choose-current
@@ -719,11 +741,11 @@ SLIDER
 117
 184
 150
-num-taxis
-num-taxis
+num-ubers
+num-ubers
 1
 400
-50
+11
 1
 1
 NIL
@@ -891,7 +913,7 @@ num-taxis
 num-taxis
 0
 100
-50
+10
 1
 1
 NIL
@@ -966,7 +988,7 @@ uber-preference
 uber-preference
 0
 10
-5
+0
 1
 1
 NIL
