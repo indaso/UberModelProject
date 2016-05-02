@@ -41,7 +41,7 @@ taxis-own [
 
 ubers-own [
   speed             ;; the speed of the turtle
-  has_destination   ;; "CALLED", "HAS_PASSENGER", "NO_PASSENGER"
+  status   ;; "CALLED", "HAS_PASSENGER", "NO_PASSENGER"
   destination              ;; destination
   wait-time         ;; the amount of time since the last time a turtle has moved
 ]
@@ -449,7 +449,7 @@ to go
     [move-random]
   ]
   ask ubers [
-    ifelse (has_destination = "CALLED" or has_destination = "HAS_PASSENGER")
+    ifelse (status = "CALLED" or status = "HAS_PASSENGER")
     [move-toward-destination destination]
     [move-random]
   ]
@@ -639,7 +639,7 @@ to test-get-closest-uber
     set closest-uber get-closest-uber
     ask closest-uber [
       set destination point_index
-      set has_destination "CALLED"
+      set status "CALLED"
       ]
   ]
 end
@@ -650,8 +650,8 @@ end
 GRAPHICS-WINDOW
 326
 10
-667
-372
+668
+373
 -1
 -1
 10.71
