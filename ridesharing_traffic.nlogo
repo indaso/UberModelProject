@@ -499,8 +499,8 @@ to go
           set want-car-count (want-car-count + 1)
           ;; ask potential riders to move to pic)up point
           set want-car? true
-          assign-car-preference
           initialize-random-location
+          assign-car-preference
           move-to-pickup-point
       ]
     ]
@@ -1003,10 +1003,10 @@ HORIZONTAL
 SLIDER
 10
 316
-182
+185
 349
-uber-rate
-uber-rate
+base-uber-rate
+base-uber-rate
 5
 25
 5
@@ -1020,8 +1020,8 @@ SLIDER
 358
 183
 391
-taxi-rate
-taxi-rate
+base-taxi-rate
+base-taxi-rate
 8
 18
 11.99
