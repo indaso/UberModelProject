@@ -23,6 +23,12 @@ globals
 
   ;;points
   pickup-points      ;; list of x,y points containing places where you can pick up
+
+  ;; Demand correlated with simplified real world traffic volume data
+  weekend-traffic
+  weekday-traffic
+
+  ticks-per-cycle
 ]
 
 breed [taxis taxi]
@@ -49,6 +55,7 @@ people-own [
  preferred-car
  want-car?
  in-car?
+ want-car-count
 ]
 
 patches-own
@@ -86,7 +93,8 @@ to setup
   setup-locations
   setup-pickup-points
   set locations [ "campus" "library" "club" "work" "arcade" ]
-
+  set weekend-traffic [1 0.5 5 6 8 4]
+  set weekday-traffic [2 0.5 2 7 8 4]
 
   set-default-shape taxis "car"
   set-default-shape ubers "car"
@@ -112,13 +120,8 @@ to setup
   ;; give the turtles an initial speed
   ask taxis [ set-car-speed ]
   set surge-pricing-active? false
-  create-people num-people
-  ask people [
-    let p-id who
-    set color red
-    setup-people-pos p-id
-    set want-car? false
-    set in-car? false
+  create-people num-people [
+    setup-people
   ]
 
   initialize-demand
@@ -135,11 +138,20 @@ to setup-globals
   set current-light nobody ;; just for now, since there are no lights yet
   set phase 0
   set num-cars-stopped 0
+  set ticks-per-cycle 3
 
   ;; don't make acceleration 0.1 since we could get a rounding error and end up on a patch boundary
-  set acceleration 0.099
+  set acceleration 1.0
 end
 
+to setup-people
+    let p-id who
+    set color red
+    setup-people-pos p-id
+    set want-car? false
+    set in-car? false
+    set want-car-count 0
+end
 ;; Make the patches have appropriate colors, set up the roads and intersections agentsets,
 ;; and initialize the traffic lights to one setting
 to setup-patches
@@ -185,7 +197,7 @@ to setup-patches
             [set direction [0 90 180 270]]
         if (pycor / 6 = 0)
             [set direction [0 90 270]]
-         if (pycor / 6 = 5)
+        if (pycor / 6 = 5)
             [set direction [90 180 270]]
       ]
      if (pxcor / 6 = 0)
@@ -420,11 +432,8 @@ to go
   set-signals
   set num-cars-stopped 0
 
-
+  let time-of-day (ticks mod 1440)
   ask people [
-   ;testing code------
-   ;;set want-car? true
-   ;;set preferred-car "Taxi"
    if (want-car?) [    ;; want-car?=true -->Person is waiting for car and check if car is nearby
      ifelse (preferred-car = "Taxi") [
        assign-taxi
@@ -434,21 +443,17 @@ to go
      ]
    ]
 
-   ;;if ((not want-car?) and (not in-car?) and count my-links = 0) [
-     ;; count added to differentiate between not wanting car and being assigned
-     ;; versus not wanting car and not being assigned
-
-        ;;dynamic ask of demand --> assign-car-preference
-          ;; ask potential riders to move to pickup point
-           ; move-to-pickup-point
-        ;;if (preferred-car = "Uber") [ assign-uber ]
-        ;;if (preferred-car = "Taxi") [ assign-taxi ]
-        ;;if [preferred-car = "None"] --> Do Nothing ( Done since we do nothing )
-   ;;]
-
-   if (in-car?) [
-     ;;if arrived at destination --> "Drop off person" or "Pick up person"
-   ]
+   if ((not want-car?) and (not in-car?) and count my-links = 0) [
+     ;; count added to differentiate between not wanting car and being assigned versus not wanting car and not being assigned
+     if (passenger-want-ride? time-of-day) [
+          set want-car-count (want-car-count + 1)
+          ;; ask potential riders to move to pic)up point
+          set want-car? true
+          assign-car-preference
+          initialize-random-location
+          move-to-pickup-point
+      ]
+    ]
   ]
 
 
@@ -569,6 +574,26 @@ to assign-taxi
         set want-car? false
       ]
     ]
+  ]
+end
+
+to-report passenger-want-ride? [time-of-day]
+  let want_ride? false
+  if (time-of-day >= 0 and time-of-day < 240)     [set want_ride? (graduated-demand 0) ] ;; 12am - 4am
+  if (time-of-day >= 240 and time-of-day < 480)   [set want_ride? (graduated-demand 1) ] ;; 4am - 8am
+  if (time-of-day >= 480 and time-of-day < 720)   [set want_ride? (graduated-demand 2) ] ;; 8am - 12pm
+  if (time-of-day >= 720 and time-of-day < 960)   [set want_ride? (graduated-demand 3) ] ;; 12pm - 4pm
+  if (time-of-day >= 960 and time-of-day < 1200)  [set want_ride? (graduated-demand 4) ] ;; 4pm - 8pm
+  if (time-of-day >= 1200 and time-of-day < 1440) [set want_ride? (graduated-demand 5) ] ;; 8pm - 12am
+  report want_ride?
+end
+
+to-report graduated-demand [ind]
+  ;; chance i want a car at 4am on a weekday or weekend is 5% --> Max probability I want a car is 40% at 4pm
+  ifelse is_weekday? [
+    report (random 1000) < (1 * item ind weekday-traffic)
+  ] [
+    report (random 1000) < (1 * item ind weekend-traffic)
   ]
 end
 
@@ -704,7 +729,7 @@ end
 
 ;; increase the speed of the turtle
 to speed-up  ;; turtle procedure
-  ifelse speed > speed-limit
+  ifelse speed >= speed-limit
   [ set speed speed-limit ]
   [ set speed speed + acceleration ]
 end
@@ -815,10 +840,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot mean [speed] of taxis"
 
 SWITCH
-10
-219
-197
-252
+11
+141
+174
+174
 ridesharing-allowed?
 ridesharing-allowed?
 0
@@ -827,14 +852,14 @@ ridesharing-allowed?
 
 SLIDER
 10
-117
-184
-150
+98
+186
+131
 num-ubers
 num-ubers
 0
 100
-4
+10
 1
 1
 NIL
@@ -859,10 +884,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot num-cars-stopped"
 
 BUTTON
-225
-305
-289
-338
+252
+49
+316
+82
 Go
 go
 T
@@ -876,10 +901,10 @@ NIL
 1
 
 BUTTON
-206
-81
-290
-114
+231
+13
+315
+46
 Setup
 setup
 NIL
@@ -893,14 +918,14 @@ NIL
 1
 
 SLIDER
-9
-289
-163
-322
+10
+275
+164
+308
 speed-limit
 speed-limit
 0.1
-1
+2
 1
 0.1
 1
@@ -909,39 +934,24 @@ HORIZONTAL
 
 SLIDER
 9
-255
-163
-288
-ticks-per-cycle
-ticks-per-cycle
-1
-100
-28
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-11
-85
+56
 183
-118
+89
 num-taxis
 num-taxis
 0
 100
-2
+20
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-9
-330
-181
-363
+10
+316
+182
+349
 uber-rate
 uber-rate
 5
@@ -953,30 +963,30 @@ $
 HORIZONTAL
 
 SLIDER
-10
-372
-182
-405
+11
+358
+183
+391
 taxi-rate
 taxi-rate
 8
 18
-12.14
+11.99
 0.01
 1
 $
 HORIZONTAL
 
 SLIDER
-11
-44
-183
-77
+8
+14
+180
+47
 num-people
 num-people
 0
 100
-29
+100
 1
 1
 NIL
@@ -984,9 +994,9 @@ HORIZONTAL
 
 SLIDER
 11
-164
+231
 124
-197
+264
 cost-tolerance
 cost-tolerance
 1
@@ -998,19 +1008,41 @@ NIL
 HORIZONTAL
 
 SLIDER
-140
-163
-312
-196
+11
+186
+174
+219
 uber-preference
 uber-preference
 0
 10
-9
+3
 1
 1
 NIL
 HORIZONTAL
+
+SWITCH
+186
+185
+318
+218
+is_weekday?
+is_weekday?
+0
+1
+-1000
+
+MONITOR
+193
+237
+304
+282
+want-car-count
+mean [want-car-count] of people
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
