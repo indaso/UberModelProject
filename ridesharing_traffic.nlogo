@@ -8,6 +8,9 @@ globals
   num-cars-stopped         ;; the number of cars that are stopped during a single pass thru the go procedure
   current-light            ;; the currently selected light
 
+  taxis
+  ubers
+
   ;; patch agentsets
   intersections ;; agentset containing the patches that are intersections
   roads         ;; agentset containing the patches that are roads
@@ -20,28 +23,23 @@ globals
   arcade        ;; agentset containing the patches that are arcade
   locations     ;; list containing possible locations
   surge-pricing-active? ;;
+  surge-pricing-ratio
+  num-cars
 
   ;;points
   pickup-points      ;; list of x,y points containing places where you can pick up
 ]
 
-breed [taxis taxi]
-breed [ubers uber]
 breed [people person]
-breed [ cars car ]
+breed [cars car]
 
-taxis-own [
+cars-own [
+  car-type          ;; "Uber" or "Taxi"
   speed             ;; the speed of the turtle
   status            ;; "CALLED", "HAS_PASSENGER", "NO_PASSENGER"
   destination       ;; destination
   wait-time         ;; the amount of time since the last time a turtle has moved
-]
-
-ubers-own [
-  speed             ;; the speed of the turtle
-  status            ;; "CALLED", "HAS_PASSENGER", "NO_PASSENGER"
-  destination       ;; destination
-  wait-time         ;; the amount of time since the last time a turtle has moved
+  surge-price       ;; the multiple of the current fare if demand for Ubers exceeds supply
 ]
 
 people-own [
@@ -87,22 +85,25 @@ to setup
   setup-pickup-points
   set locations [ "campus" "library" "club" "work" "arcade" ]
 
-
-  set-default-shape taxis "car"
-  set-default-shape ubers "car"
   set-default-shape cars "car"
   set-default-shape people "person"
-  ;; Now create the turtles and have each created turtle call the functions setup-cars and set-car-color
 
-  create-taxis num-taxis
+  ;; Now create the turtles and have each created turtle call the functions setup-cars and set-car-color
+  set num-cars num-taxis + num-ubers
+  create-cars num-taxis
+  set taxis cars
+  ask taxis
   [
     setup-taxis
     record-data
   ]
 
+  create-cars num-ubers
+  set ubers cars with [ car-type != "Taxi" ]
+
   if ridesharing-allowed?
   [
-    create-ubers num-ubers
+    ask ubers
     [
       setup-ubers
       record-data
@@ -234,7 +235,8 @@ to setup-taxis
   set wait-time 0
   set color yellow
   set status "NO_PASSENGER"
-  set destination -1
+  set destination []
+  set car-type "Taxi"
   put-on-empty-road
 
   ifelse (xcor mod 6 = 0)   ;;set heading in directions
@@ -255,7 +257,9 @@ to setup-ubers
   set wait-time 0
   set color black
   put-on-empty-road
+  set destination []
   set status "NO_PASSENGER"
+  set car-type "Uber"
 
   ifelse (xcor mod 6 = 0)   ;;set heading in directions
   [ ;; traveling vertically
@@ -275,8 +279,13 @@ to put-on-empty-road  ;; turtle procedure
   move-to one-of roads with [not any? cars-on self]
 end
 
-;; look at user's preference and decide what car they want
+;; look at user's preference and decide what car they want based on several factors
 to pick-car-type
+  let uber-rate calculate-uber-rate
+  let taxi-rate calculate-taxi-rate
+  if surge-pricing-active?
+  [ set uber-rate (uber-rate * surge-pricing-ratio) ]
+
   if (ridesharing-allowed? and preferred-car = "Uber")
   [
     ifelse(surge-pricing-active?)
@@ -291,6 +300,7 @@ end
 
 ;; Assign a taxi or Uber to a rider
 to assign-car-preference
+  set want-car? true
   ifelse (ridesharing-allowed? and random 10 < uber-preference)
   [ set preferred-car "Uber" set color green ]
   [ set preferred-car "Taxi" set color blue + 2 ]
@@ -300,13 +310,22 @@ to assign-car-preference
   pick-car-type
 end
 
+to-report calculate-uber-rate
+  let point get-dropoff-location-point [location] of self
+  report base-uber-rate + 0.4 * distancexy item 0 point item 1 point
+end
+
+to-report calculate-taxi-rate
+  let point get-dropoff-location-point [location] of self
+  report base-taxi-rate + 0.4 * distancexy item 0 point item 1 point
+end
+
 ;; initialize random num-people to wanting an uber
 to initialize-demand
   ask n-of (num-people / 2) people
   [
     initialize-random-location
     assign-car-preference
-    set want-car? true
   ]
 
 end
@@ -375,6 +394,34 @@ to move-to-pickup-point
   setxy item 0 point item 1 point
 end
 
+to update-surge-pricing
+  ;; survey for Uber demand
+  let num-people-want-uber count people with [
+    preferred-car = "Uber" and want-car? = true
+  ]
+  ;; survey for Uber availability
+  let num-ubers-available count ubers with [ status = "NO_PASSENGER" ]
+  ;; set up surge pricing as ratio
+  if num-ubers-available = 0
+  [ set num-ubers-available 1 ]
+  set surge-pricing-ratio num-people-want-uber / num-ubers-available
+     ;; show num-people-want-uber
+     ;; show num-ubers-available
+     ;; show surge-pricing-ratio
+  if (surge-pricing-ratio > 1 )
+  [ set surge-pricing-active? true ]
+  ask ubers [
+    ifelse (surge-pricing-active?)
+      [ set surge-price surge-pricing-ratio * base-uber-rate ]
+      [ set surge-price base-uber-rate ]
+  ]
+  ;show surge-pricing-ratio
+  ;show surge-pricing-ratio * base-uber-rate
+end
+
+
+
+
 ;; find the closest pickup point to the person
 to-report get-closest-pickup-point
   let mindist 1000000
@@ -419,6 +466,8 @@ to go
   ;; have the intersections change their color
   set-signals
   set num-cars-stopped 0
+  if ticks mod 60 = 0
+  [ update-surge-pricing ]
 
 
   ask people [
@@ -538,10 +587,13 @@ to dropoff
     if ( location = "work" ) [ move-to one-of work ]
     if ( location = "arcade" ) [ move-to one-of arcade ]
   ]
+
+  set destination []
 end
 
 to assign-uber
   let curr-per self
+  ;if color = red [ show "Picking up red passenger" ]
   let pickup-point get-closest-pickup-point
   move-to-pickup-point
   let closest-uber get-closest-uber
@@ -683,7 +735,7 @@ to set-speed [ delta-x delta-y ]  ;; turtle procedure
   ifelse any? cars-ahead
   [
     ;;ifelse any? (turtles-ahead with [ up-car? != [up-car?] of myself ])
-    ifelse any? (cars-ahead with [ true != [true] of myself ])
+    ifelse any? (cars-ahead with [ heading != [heading] of myself ])
     [
       set speed 0
     ]
@@ -735,7 +787,7 @@ end
 
 to test-get-closest-uber
   ask person 131 [ setxy 1 29 set want-car? true set preferred-car "Uber" ]
-  ask uber 16 [ setxy 6 30 ]
+  ask one-of ubers [ setxy 6 30 ]
   let pickup-point []
   let closest-uber one-of ubers
   ask person 131 [
@@ -854,7 +906,7 @@ Stopped Cars
 100.0
 true
 false
-"set-plot-y-range 0 num-cars" ""
+"set-plot-y-range 0 (num-taxis + num-ubers)" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot num-cars-stopped"
 
@@ -916,7 +968,7 @@ ticks-per-cycle
 ticks-per-cycle
 1
 100
-28
+25
 1
 1
 NIL
@@ -931,7 +983,7 @@ num-taxis
 num-taxis
 0
 100
-2
+0
 1
 1
 NIL
@@ -942,11 +994,11 @@ SLIDER
 330
 181
 363
-uber-rate
-uber-rate
+base-uber-rate
+base-uber-rate
 5
-12
-7.8
+25
+5
 0.01
 1
 $
@@ -957,11 +1009,11 @@ SLIDER
 372
 182
 405
-taxi-rate
-taxi-rate
+base-taxi-rate
+base-taxi-rate
 8
-18
-12.14
+30
+10.38
 0.01
 1
 $
@@ -976,7 +1028,7 @@ num-people
 num-people
 0
 100
-29
+72
 1
 1
 NIL
@@ -990,8 +1042,8 @@ SLIDER
 cost-tolerance
 cost-tolerance
 1
-10
-6
+30
+24
 1
 1
 NIL
@@ -1006,7 +1058,7 @@ uber-preference
 uber-preference
 0
 10
-9
+10
 1
 1
 NIL
