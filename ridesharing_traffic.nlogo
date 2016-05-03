@@ -443,7 +443,7 @@ to go
    ]
 
    if (in-car?) [
-     ;;if arrived at destination --> "Drop off person"
+     ;;if arrived at destination --> "Drop off person" or "Pick up person"
    ]
   ]
 
@@ -457,9 +457,22 @@ to go
     [move-random]
   ]
   ask ubers [
-    ifelse (status = "CALLED" or status = "HAS_PASSENGER")
-    [move-toward-destination destination]
-    [move-random]
+    ;; go through 3 statuses
+    ifelse (status = "CALLED" )
+    [
+      move-toward-destination destination
+      if (distance destination = 1) ;; check if destination is index or actual spot
+      [ set status "HAS_PASSENGER" ] ;; also add pick-up command (tie and move)
+    ]
+    [
+      ifelse (status = "HAS_PASSENGER")
+      [
+        move-toward-destination destination
+        if (distance destination = 1)
+        [ set status "NO_PASSENGER" ] ;; drop-off command (unlink and place person on location grid (setxy one-of patches xcor ycor))
+      ]
+      [ move-random ]
+    ]
   ]
 
   ;; update the phase and the global clock
@@ -471,6 +484,7 @@ to assign-uber
   let curr-per self
   let pickup-point get-closest-pickup-point
   let point_index position pickup-point pickup-points
+  move-to-pickup-point
   let closest-uber get-closest-uber
   ask closest-uber [
     set destination point_index
@@ -486,6 +500,7 @@ to assign-taxi
   let curr-person self
   let pickup-point get-closest-pickup-point
   let point-index position pickup-point pickup-points
+  move-to-pickup-point
   let empty-taxi one-of taxis in-radius 4 with [ not has_passenger? ]
   if empty-taxi != nobody [
     ask empty-taxi [ ;;if there is a taxi nearby --> assign person to be in taxi and taxi to have person
