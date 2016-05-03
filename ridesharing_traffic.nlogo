@@ -24,7 +24,7 @@ globals
   ;;points
   pickup-points      ;; list of x,y points containing places where you can pick up
 
-  uber-driver-list   ;; list of uber drivers waiting for a rider
+  available-ubers   ;; list of uber drivers waiting for a rider
 ]
 
 breed [taxis taxi]
@@ -132,7 +132,7 @@ to setup-globals
   set current-light nobody ;; just for now, since there are no lights yet
   set phase 0
   set num-cars-stopped 0
-  set uber-driver-list []
+  set available-ubers []
 
   ;; don't make acceleration 0.1 since we could get a rounding error and end up on a patch boundary
   set acceleration 0.099
@@ -253,6 +253,7 @@ to setup-ubers
   set wait-time 0
   set color black
   put-on-empty-road
+  set status "NO_PASSENGER"
 
   ifelse (xcor mod 6 = 0)   ;;set heading in directions
   [ ;; traveling vertically
@@ -265,7 +266,7 @@ to setup-ubers
     [set heading 90]
   ]
 
-  set uber-driver-list lput self uber-driver-list
+  set available-ubers lput self available-ubers
 
 end
 
@@ -297,11 +298,6 @@ to assign-car-preference
   [ set preferred-car "Other"
     set want-car? false ]
   pick-car-type
-end
-
-;; bring the car to user, stub for Jenny
-to bring-car-to-user
-
 end
 
 ;; initialize random num-people to wanting an uber
@@ -381,10 +377,6 @@ to-report get-closest-pickup-point
   let closest-point []
   foreach pickup-points [
     let point ?
-    ;let xdist item 0 point - xcor
-    ;let ydist item 1 point - ycor
-    ;let dist (xdist * xdist) + (ydist * ydist)
-    ;set dist sqrt dist
     let dist distancexy item 0 point item 1 point
     if(dist < mindist)
     [
@@ -398,8 +390,10 @@ end
 ;; get closest uber
 to-report get-closest-uber
   let mindist 1000000
-  let closest-uber item 0 uber-driver-list
-  foreach uber-driver-list [
+  if (empty? available-ubers)
+  [ report no-turtles ]
+  let closest-uber item 0 available-ubers
+  foreach available-ubers [
     let uber-driver ?
     let dist distancexy [xcor] of uber-driver [ycor] of uber-driver
     if(dist < mindist)
@@ -409,6 +403,7 @@ to-report get-closest-uber
     ]
   ]
   create-link-with closest-uber
+  set available-ubers remove closest-uber available-ubers
   report closest-uber
 end
 
@@ -431,21 +426,10 @@ to go
      let personid who
 
      ifelse (preferred-car = "Taxi") [
-       let incab false
-       ask taxis in-radius 4 [ ;;if there is a taxi nearby --> assign person to be in taxi and taxi to have person
-         if (not has_passenger?) [
-             assign-taxi personid
-             set incab true
-           stop
-         ]
-       ]
-       if incab [
-        set want-car? false
-        set in-car? true
-        set hidden? true
-       ]
-     ] [ ;;preferred-car = "Uber"
-
+       assign-taxi
+     ]
+     [ ;;preferred-car = "Uber"
+       assign-uber
      ]
    ]
 
@@ -453,11 +437,9 @@ to go
         ;;dynamic ask of demand --> assign-car-preference
           ;; ask potential riders to move to pickup point
            ; move-to-pickup-point
-        if (preferred-car = "Uber") [
-          ;;assign user an uber driver
-        ]
-        ;;if [preferred-car = "Taxi"] --> Wait for taxi
-        ;;if [preferred-car = "None"] --> Do Nothing
+        if (preferred-car = "Uber") [ assign-uber ]
+        if (preferred-car = "Taxi") [ assign-taxi ]
+        ;;if [preferred-car = "None"] --> Do Nothing ( Done since we do nothing )
    ]
 
    if (in-car?) [
@@ -485,14 +467,39 @@ to go
   tick
 end
 
-to call-uber
-
+to assign-uber
+  let curr-per self
+  let pickup-point get-closest-pickup-point
+  let point_index position pickup-point pickup-points
+  let closest-uber get-closest-uber
+  ask closest-uber [
+    set destination point_index
+    set status "CALLED"
+    ask curr-per [
+      set want-car? false
+      set in-car? true
+    ]
+  ]
 end
 
-to assign-taxi [personid]
-  create-link-with person personid
-  set has_passenger? true
-  set destination [location] of person personid
+to assign-taxi
+  let curr-person self
+  let pickup-point get-closest-pickup-point
+  let point-index position pickup-point pickup-points
+  let empty-taxi one-of taxis in-radius 4 with [ not has_passenger? ]
+  if empty-taxi != nobody [
+    ask empty-taxi [ ;;if there is a taxi nearby --> assign person to be in taxi and taxi to have person
+      create-link-with curr-person
+      set has_passenger? true
+      let person_location [location] of curr-person
+      set destination point-index
+      ask curr-person [
+        set want-car? false
+        set in-car? true
+        set hidden? false
+      ]
+    ]
+  ]
 end
 
 ;; Uber and Taxi Related Procedures for GO ----------------------------------------
@@ -758,7 +765,7 @@ num-ubers
 num-ubers
 1
 100
-1
+4
 1
 1
 NIL
@@ -855,7 +862,7 @@ num-taxis
 num-taxis
 0
 100
-16
+23
 1
 1
 NIL
@@ -915,7 +922,7 @@ cost-tolerance
 cost-tolerance
 1
 10
-5
+6
 1
 1
 NIL
@@ -930,7 +937,7 @@ uber-preference
 uber-preference
 0
 10
-10
+5
 1
 1
 NIL
