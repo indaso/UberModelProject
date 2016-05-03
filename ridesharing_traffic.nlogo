@@ -23,8 +23,6 @@ globals
 
   ;;points
   pickup-points      ;; list of x,y points containing places where you can pick up
-
-  available-ubers   ;; list of uber drivers waiting for a rider
 ]
 
 breed [taxis taxi]
@@ -137,7 +135,6 @@ to setup-globals
   set current-light nobody ;; just for now, since there are no lights yet
   set phase 0
   set num-cars-stopped 0
-  set available-ubers []
 
   ;; don't make acceleration 0.1 since we could get a rounding error and end up on a patch boundary
   set acceleration 0.099
@@ -271,8 +268,6 @@ to setup-ubers
     [set heading 90]
   ]
 
-  set available-ubers lput self available-ubers
-
 end
 
 ;; Find a road patch without any cars on it and place the car there.
@@ -399,20 +394,19 @@ end
 ;; get closest uber
 to-report get-closest-uber
   let mindist 1000000
-  if (empty? available-ubers)
+  let empty-ubers ubers with [ status = "NO_PASSENGER" ]
+  if (not any? empty-ubers)
   [ report no-turtles ]
-  let closest-uber item 0 available-ubers
-  foreach available-ubers [
-    let uber-driver ?
-    let dist distancexy [xcor] of uber-driver [ycor] of uber-driver
+  let closest-uber one-of empty-ubers
+  ask empty-ubers [
+    let dist distancexy xcor ycor
     if(dist < mindist)
     [
       set mindist dist
-      set closest-uber uber-driver
+      set closest-uber self
     ]
   ]
   create-link-with closest-uber
-  set available-ubers remove closest-uber available-ubers
   report closest-uber
 end
 
@@ -432,7 +426,6 @@ to go
    ;;set want-car? true
    ;;set preferred-car "Taxi"
    if (want-car?) [    ;; want-car?=true -->Person is waiting for car and check if car is nearby
-
      ifelse (preferred-car = "Taxi") [
        assign-taxi
      ]
@@ -553,8 +546,8 @@ to assign-uber
   move-to-pickup-point
   let closest-uber get-closest-uber
   ask closest-uber [
-    set destination pickup-point
     set status "CALLED"
+    set destination pickup-point
     ask curr-per [
       set want-car? false
     ]
@@ -828,7 +821,7 @@ SWITCH
 252
 ridesharing-allowed?
 ridesharing-allowed?
-1
+0
 1
 -1000
 
