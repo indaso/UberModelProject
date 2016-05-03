@@ -34,15 +34,15 @@ breed [ cars car ]
 
 taxis-own [
   speed             ;; the speed of the turtle
-  has_passenger?    ;; true if taxi has passenger false if not
+  status            ;; "CALLED", "HAS_PASSENGER", "NO_PASSENGER"
   destination       ;; destination
   wait-time         ;; the amount of time since the last time a turtle has moved
 ]
 
 ubers-own [
   speed             ;; the speed of the turtle
-  status   ;; "CALLED", "HAS_PASSENGER", "NO_PASSENGER"
-  destination              ;; destination
+  status            ;; "CALLED", "HAS_PASSENGER", "NO_PASSENGER"
+  destination       ;; destination
   wait-time         ;; the amount of time since the last time a turtle has moved
 ]
 
@@ -95,15 +95,20 @@ to setup
   set-default-shape cars "car"
   set-default-shape people "person"
   ;; Now create the turtles and have each created turtle call the functions setup-cars and set-car-color
+
   create-taxis num-taxis
   [
     setup-taxis
     record-data
   ]
-  create-ubers num-ubers
+
+  if ridesharing-allowed?
   [
-    setup-ubers
-    record-data
+    create-ubers num-ubers
+    [
+      setup-ubers
+      record-data
+    ]
   ]
 
   ;; give the turtles an initial speed
@@ -231,7 +236,7 @@ to setup-taxis
   set speed 0
   set wait-time 0
   set color yellow
-  set has_passenger? false
+  set status "NO_PASSENGER"
   set destination -1
   put-on-empty-road
 
@@ -277,26 +282,26 @@ end
 
 ;; look at user's preference and decide what car they want
 to pick-car-type
-  if (preferred-car = "Uber")
+  if (ridesharing-allowed? and preferred-car = "Uber")
   [
     ifelse(surge-pricing-active?)
     [
       ifelse(uber-rate > taxi-rate)
-      [ set preferred-car "Taxi"]
-      [ set preferred-car "Uber" ]
+      [ set preferred-car "Taxi" set color blue + 2]
+      [ set preferred-car "Uber" set color green ]
     ]
-    [ set preferred-car "Uber" ]
+    [ set preferred-car "Uber" set color green ]
   ]
 end
 
 ;; Assign a taxi or Uber to a rider
 to assign-car-preference
-  ifelse (random 10 < uber-preference)
-  [ set preferred-car "Uber" ]
-  [ set preferred-car "Taxi" ]
+  ifelse (ridesharing-allowed? and random 10 < uber-preference)
+  [ set preferred-car "Uber" set color green ]
+  [ set preferred-car "Taxi" set color blue + 2 ]
   if (random 10 < 1)
   [ set preferred-car "Other"
-    set want-car? false ]
+    set want-car? false set color red]
   pick-car-type
 end
 
@@ -317,16 +322,20 @@ to initialize-random-location
   set location item loc_index locations
 end
 
-to-report get-loc-index [loc]
-  report position loc locations
+to-report get-dropoff-location-point [ loc ]
+  if(loc = "campus") [ report [ 18 12 ] ]
+  if(loc = "arcade") [ report [ 6 25 ] ]
+  if(loc = "club") [ report [ 30 1 ] ]
+  if(loc = "library") [ report [ 30 25 ] ]
+  if(loc = "work") [ report [ 6 1 ] ]
 end
 
 to setup-locations
-  set campus patches with [pxcor < min-pxcor + floor(grid-x-inc) and pxcor > min-pxcor and pycor < min-pycor + floor(grid-y-inc) and pycor > min-pycor]
+  set work patches with [pxcor < min-pxcor + floor(grid-x-inc) and pxcor > min-pxcor and pycor < min-pycor + floor(grid-y-inc) and pycor > min-pycor]
   set arcade patches with [pxcor < min-pxcor + floor(grid-x-inc) and pxcor > min-pxcor and pycor < max-pycor and pycor > max-pycor - floor(grid-y-inc)]
   set club patches with [pxcor < max-pxcor and pxcor >= max-pxcor - floor(grid-x-inc - 1) and pycor < min-pycor + floor(grid-y-inc) and pycor > min-pycor]
   set library patches with [pxcor < max-pxcor and pxcor >= max-pxcor - floor(grid-x-inc - 1) and pycor < max-pycor and pycor > max-pycor - floor(grid-y-inc)]
-  set work patches with [pxcor < 18 and pxcor > 18 - 6 and pycor < 18 and pycor > 18 - 6]
+  set campus patches with [pxcor < 18 and pxcor > 18 - 6 and pycor < 18 and pycor > 18 - 6]
   ask campus [ set pcolor orange ]
   ask arcade [ set pcolor blue ]
   ask club [ set pcolor green - 3]
@@ -423,7 +432,6 @@ to go
    ;;set want-car? true
    ;;set preferred-car "Taxi"
    if (want-car?) [    ;; want-car?=true -->Person is waiting for car and check if car is nearby
-     let personid who
 
      ifelse (preferred-car = "Taxi") [
        assign-taxi
@@ -433,14 +441,17 @@ to go
      ]
    ]
 
-   if ((not want-car?) and (not in-car?)) [
+   ;;if ((not want-car?) and (not in-car?) and count my-links = 0) [
+     ;; count added to differentiate between not wanting car and being assigned
+     ;; versus not wanting car and not being assigned
+
         ;;dynamic ask of demand --> assign-car-preference
           ;; ask potential riders to move to pickup point
            ; move-to-pickup-point
-        if (preferred-car = "Uber") [ assign-uber ]
-        if (preferred-car = "Taxi") [ assign-taxi ]
+        ;;if (preferred-car = "Uber") [ assign-uber ]
+        ;;if (preferred-car = "Taxi") [ assign-taxi ]
         ;;if [preferred-car = "None"] --> Do Nothing ( Done since we do nothing )
-   ]
+   ;;]
 
    if (in-car?) [
      ;;if arrived at destination --> "Drop off person" or "Pick up person"
@@ -452,24 +463,38 @@ to go
   ;; record data for plotting, and set the color of the turtles to an appropriate color
   ;; based on their speed
   ask taxis [
-    ifelse (has_passenger?) ;;if true move towards destination
-    [move-toward-destination destination]
-    [move-random]
-  ]
-  ask ubers [
     ;; go through 3 statuses
     ifelse (status = "CALLED" )
     [
       move-toward-destination destination
-      if (distance destination = 1) ;; check if destination is index or actual spot
-      [ set status "HAS_PASSENGER" ] ;; also add pick-up command (tie and move)
+      if (distancexy item 0 destination item 1 destination = 1)
+      [ pickup ] ;; also add pick-up command (tie and move)
     ]
     [
       ifelse (status = "HAS_PASSENGER")
       [
         move-toward-destination destination
-        if (distance destination = 1)
-        [ set status "NO_PASSENGER" ] ;; drop-off command (unlink and place person on location grid (setxy one-of patches xcor ycor))
+        if (distancexy item 0 destination item 1 destination = 1)
+        [ dropoff ] ;; drop-off command (unlink and place person on location grid (setxy one-of patches xcor ycor))
+      ]
+      [ move-random ]
+    ]
+  ]
+
+  ask ubers [
+    ;; go through 3 statuses
+    ifelse (status = "CALLED" )
+    [
+      move-toward-destination destination
+      if (distancexy item 0 destination item 1 destination = 1)
+      [ pickup ] ;; also add pick-up command (tie and move)
+    ]
+    [
+      ifelse (status = "HAS_PASSENGER")
+      [
+        move-toward-destination destination
+        if (distancexy item 0 destination item 1 destination = 1)
+        [ dropoff ] ;; drop-off command (unlink and place person on location grid (setxy one-of patches xcor ycor))
       ]
       [ move-random ]
     ]
@@ -480,18 +505,58 @@ to go
   tick
 end
 
+;; pickup person and
+to pickup
+  set status "HAS_PASSENGER"
+  ask my-links [
+    set hidden? true
+    tie
+    ;set color green
+  ]
+  let passenger [ other-end ] of one-of my-links
+  let point-destination get-dropoff-location-point [location] of passenger
+  set destination point-destination
+
+  ask passenger [
+    set hidden? true
+    set in-car? true
+  ]
+end
+
+to dropoff
+  set status "NO_PASSENGER"
+  let passenger [ other-end ] of one-of my-links
+  ask my-links [
+    set hidden? false
+    untie
+    die
+    ;set color yellow
+  ]
+  ;let point-destination get-dropoff-location-point [location] of passenger
+  ;set destination point-destination
+
+  ask passenger [
+    set hidden? false
+    set color black
+    set in-car? false
+    if ( location = "campus" ) [ move-to one-of campus ]
+    if ( location = "library" ) [ move-to one-of library ]
+    if ( location = "club" ) [ move-to one-of club ]
+    if ( location = "work" ) [ move-to one-of work ]
+    if ( location = "arcade" ) [ move-to one-of arcade ]
+  ]
+end
+
 to assign-uber
   let curr-per self
   let pickup-point get-closest-pickup-point
-  let point_index position pickup-point pickup-points
   move-to-pickup-point
   let closest-uber get-closest-uber
   ask closest-uber [
-    set destination point_index
+    set destination pickup-point
     set status "CALLED"
     ask curr-per [
       set want-car? false
-      set in-car? true
     ]
   ]
 end
@@ -499,26 +564,23 @@ end
 to assign-taxi
   let curr-person self
   let pickup-point get-closest-pickup-point
-  let point-index position pickup-point pickup-points
   move-to-pickup-point
-  let empty-taxi one-of taxis in-radius 4 with [ not has_passenger? ]
+  let empty-taxi one-of taxis in-radius 4 with [ status = "NO_PASSENGER" ]
   if empty-taxi != nobody [
     ask empty-taxi [ ;;if there is a taxi nearby --> assign person to be in taxi and taxi to have person
       create-link-with curr-person
-      set has_passenger? true
+      set status "CALLED"
       let person_location [location] of curr-person
-      set destination point-index
+      set destination pickup-point
       ask curr-person [
         set want-car? false
-        set in-car? true
-        set hidden? false
       ]
     ]
   ]
 end
 
 ;; Uber and Taxi Related Procedures for GO ----------------------------------------
-to move-toward-destination [dest_ind]
+to move-toward-destination [dest_points]
    set-car-speed
    let step 1
    while [step <= speed] [
@@ -527,7 +589,7 @@ to move-toward-destination [dest_ind]
      ifelse ((length turnlist) = 1) [
        set heading (item 0 turnlist)
      ] [ ;;Case 2: At intersection, choose a random path that takes you closer to your destination
-       let closerturns closer_turns xcor ycor dest_ind
+       let closerturns closer_turns xcor ycor dest_points
        let choices []
        foreach closerturns [
          if (member? ? turnlist) [set choices lput ? choices]
@@ -539,9 +601,9 @@ to move-toward-destination [dest_ind]
    ]
 end
 
-to-report closer_turns [x y dest_ind]
-  let dest_x (item 0 (item dest_ind pickup-points))
-  let dest_y (item 1 (item dest_ind pickup-points))
+to-report closer_turns [x y dest_points]
+  let dest_x (item 0 dest_points)
+  let dest_y (item 1 dest_points)
   let turns []
 
   if (dest_x > x) [ set turns lput 90 turns]
@@ -589,8 +651,8 @@ end
 ;; This procedure checks the variable green-light-up? at each intersection and sets the
 ;; traffic lights to have the green light up or the green light to the left.
 to set-signal-colors  ;; intersection (patch) procedure
-  ifelse ridesharing-allowed?
-  [
+  ;ifelse ridesharing-allowed?
+  ;[
     ifelse green-light-up? [
       if (pxcor != 0) [ask patch-at -1 0 [ set pcolor red ]]
       if (pycor != 30) [ask patch-at 0 1 [ set pcolor green ]]
@@ -598,11 +660,11 @@ to set-signal-colors  ;; intersection (patch) procedure
       if (pxcor != 0) [ask patch-at -1 0 [ set pcolor green ]]
       if (pycor != 30) [ask patch-at 0 1 [ set pcolor red ]]
     ]
-  ]
-  [
-    ask patch-at -1 0 [ set pcolor white ]
-    ask patch-at 0 1 [ set pcolor white ]
-  ]
+  ;]
+  ;[
+  ;  ask patch-at -1 0 [ set pcolor white ]
+  ;  ask patch-at 0 1 [ set pcolor white ]
+  ;]
 end
 
 ;; set the turtles' speed based on whether they are at a red traffic light or the speed of the
@@ -685,10 +747,9 @@ to test-get-closest-uber
   let closest-uber one-of ubers
   ask person 131 [
     set pickup-point get-closest-pickup-point
-    let point_index position pickup-point pickup-points
     set closest-uber get-closest-uber
     ask closest-uber [
-      set destination point_index
+      set destination pickup-point
       set status "CALLED"
       ]
   ]
@@ -767,7 +828,7 @@ SWITCH
 252
 ridesharing-allowed?
 ridesharing-allowed?
-0
+1
 1
 -1000
 
@@ -778,7 +839,7 @@ SLIDER
 150
 num-ubers
 num-ubers
-1
+0
 100
 4
 1
@@ -877,7 +938,7 @@ num-taxis
 num-taxis
 0
 100
-23
+2
 1
 1
 NIL
@@ -922,7 +983,7 @@ num-people
 num-people
 0
 100
-100
+29
 1
 1
 NIL
@@ -952,7 +1013,7 @@ uber-preference
 uber-preference
 0
 10
-5
+9
 1
 1
 NIL
