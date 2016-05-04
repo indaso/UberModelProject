@@ -34,6 +34,14 @@ globals
   weekday-traffic
 
   ticks-per-cycle
+
+  ;; metrics
+
+  total-num-cars    ;; total amount of cars over 24 hours
+  min-num-cars      ;; minimum number of cars in an hour
+  max-num-cars      ;; maximum number of cars in an hour over the course of a day
+  avg-num-cars      ;; average number of cars per hour
+  car-stat-list     ;; number of cars in each hour
 ]
 
 breed [people person]
@@ -143,6 +151,7 @@ to setup-globals
   set phase 0
   set num-cars-stopped 0
   set ticks-per-cycle 3
+  set car-stat-list []
 
   ;; don't make acceleration 0.1 since we could get a rounding error and end up on a patch boundary
   set acceleration 1.0
@@ -304,13 +313,14 @@ to pick-car-type
 
   if (ridesharing-allowed? and preferred-car = "Uber")
   [
-    ifelse(uber-rate > taxi-rate)
+    let destination-rates list uber-rate taxi-rate
+    ifelse(min destination-rates < max-cost)
     [
-      ifelse(taxi-rate < max-cost)
+      ifelse(uber-rate > taxi-rate)
       [ set preferred-car "Taxi" set color blue + 2 ]
-      [ set want-car? false set color red set preferred-car "Other" stop ]
+      [ set preferred-car "Uber" set color green ]
     ]
-    [ set preferred-car "Uber" set color green ]
+    [ set want-car? false set color red set preferred-car "Other" stop ]
   ]
 end
 
@@ -485,6 +495,10 @@ to go
   if ticks mod 60 = 0 and ridesharing-allowed?
   [ update-surge-pricing ]
 
+  if ticks mod 60 = 0 and ticks != 0
+  [ set car-stat-list lput (count cars) car-stat-list ]
+
+
   if ticks mod 120 = 0 and ticks != 0 and ridesharing-allowed?
   [ check-uber-demand ]
 
@@ -497,6 +511,16 @@ to go
       setup-people-pos
     ]
   ]
+
+  if ticks mod 1440 = 0 and ticks != 0
+  [
+    set total-num-cars count cars
+    set avg-num-cars mean car-stat-list
+    set max-num-cars max car-stat-list
+    set min-num-cars min car-stat-list
+    set car-stat-list []
+  ]
+
 
   let time-of-day (ticks mod 1440)
   ask people [
@@ -677,7 +701,6 @@ to check-uber-demand
   let available-ubers ubers with [ status = "NO_PASSENGER" ]
 
   let amount num-people-want-uber - count available-ubers
-  type "Tick: " type ticks type " Amount: " print amount
      ;; show num-people-want-uber
      ;; show num-ubers-available
      ;; show surge-pricing-ratio
@@ -703,7 +726,6 @@ to check-taxi-demand
   let available-taxis taxis with [ status = "NO_PASSENGER" ]
 
   let amount num-people-want-taxi - count available-taxis
-  type "Tick: " type ticks type " Amount: " print amount
      ;; show num-people-want-uber
      ;; show num-ubers-available
      ;; show surge-pricing-ratio
@@ -958,7 +980,7 @@ SWITCH
 174
 ridesharing-allowed?
 ridesharing-allowed?
-0
+1
 1
 -1000
 
@@ -1098,7 +1120,7 @@ num-people
 num-people
 0
 300
-13
+200
 1
 1
 NIL
@@ -1113,7 +1135,7 @@ cost-tolerance
 cost-tolerance
 1
 10
-4
+10
 1
 1
 NIL
@@ -1157,43 +1179,43 @@ mean [want-car-count] of people
 11
 
 MONITOR
-209
-306
-300
-351
-taxi-people
+175
+453
+326
+498
+People who want Taxis
 count people with [ preferred-car = \"Taxi\" ]
 17
 1
 11
 
 MONITOR
-219
-378
-309
-423
-uber-people
+9
+453
+164
+498
+People who want Ubers
 count people with [ preferred-car = \"Uber\" ]
 17
 1
 11
 
 MONITOR
-221
-450
-316
-495
-other-people
+7
+402
+171
+447
+People who want no cars
 count people with [ preferred-car = \"Other\" ]
 17
 1
 11
 
 MONITOR
-343
-442
-435
-487
+200
+339
+292
+384
 Ubers on Road
 count cars with [car-type = \"Uber\"]
 17
@@ -1201,10 +1223,10 @@ count cars with [car-type = \"Uber\"]
 11
 
 MONITOR
-532
-428
-626
-473
+200
+391
+294
+436
 Empty Ubers
 count cars with [ status = \"NO_PASSENGER\" and car-type = \"Uber\" ]
 17
@@ -1212,10 +1234,10 @@ count cars with [ status = \"NO_PASSENGER\" and car-type = \"Uber\" ]
 11
 
 MONITOR
-346
-385
-447
-430
+200
+287
+301
+332
 Taxis on Road
 count cars with [ car-type = \"Taxi\" ]
 17
@@ -1223,13 +1245,57 @@ count cars with [ car-type = \"Taxi\" ]
 11
 
 MONITOR
-524
-389
-638
-434
+563
+453
+677
+498
 dropped-people
 count people with [ color = black ]
 17
+1
+11
+
+MONITOR
+335
+397
+466
+442
+Total Cars on Road
+total-num-cars
+17
+1
+11
+
+MONITOR
+336
+456
+440
+501
+NIL
+min-num-cars
+17
+1
+11
+
+MONITOR
+487
+396
+595
+441
+NIL
+max-num-cars
+17
+1
+11
+
+MONITOR
+452
+455
+555
+500
+NIL
+avg-num-cars
+2
 1
 11
 
