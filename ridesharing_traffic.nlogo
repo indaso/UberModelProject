@@ -154,7 +154,7 @@ to setup-people
     set want-car? false
     set in-car? false
     set want-car-count 0
-    set max-cost random-normal ((cost-tolerance * 10 + 15) / 100 * 35) 10
+    set max-cost random-normal ((cost-tolerance * 10 + 10) / 100 * 35) 7
 end
 ;; Make the patches have appropriate colors, set up the roads and intersections agentsets,
 ;; and initialize the traffic lights to one setting
@@ -305,7 +305,7 @@ to pick-car-type
   [
     ifelse(uber-rate > taxi-rate)
     [
-      ifelse(max-cost < taxi-rate)
+      ifelse(taxi-rate < max-cost)
       [ set preferred-car "Taxi" set color blue + 2 ]
       [ set want-car? false set color red set preferred-car "Other" stop ]
     ]
@@ -914,7 +914,7 @@ num-ubers
 num-ubers
 0
 100
-10
+4
 1
 1
 NIL
@@ -1024,9 +1024,9 @@ SLIDER
 391
 base-taxi-rate
 base-taxi-rate
-8
-18
-11.99
+10
+15
+15
 0.01
 1
 $
@@ -1056,7 +1056,7 @@ cost-tolerance
 cost-tolerance
 1
 10
-10
+1
 1
 1
 NIL
@@ -1117,6 +1117,17 @@ MONITOR
 423
 uber-people
 count people with [ preferred-car = \"Uber\" ]
+17
+1
+11
+
+MONITOR
+221
+450
+316
+495
+other-people
+count people with [ preferred-car = \"Other\" ]
 17
 1
 11
