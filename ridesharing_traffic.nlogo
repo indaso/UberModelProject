@@ -151,7 +151,7 @@ end
 to setup-people
     let p-id who
     set color red
-    setup-people-pos p-id
+    setup-people-pos
     set want-car? false
     set in-car? false
     set want-car-count 0
@@ -374,7 +374,7 @@ to setup-locations
 end
 
 ;; set up initial positions of persons
-to setup-people-pos [per]
+to setup-people-pos
     let in-road true
     ;; if in road, keep looping until coord is found that is not
     ;; in the road
@@ -382,7 +382,7 @@ to setup-people-pos [per]
       set in-road false
       setxy floor(random-xcor) floor(random-ycor)
       ask roads [
-        if ([xcor] of turtle per = pxcor and [ycor] of turtle per = pycor)
+        if ([xcor] of myself = pxcor and [ycor] of myself = pycor)
         [set in-road true]
       ]
     ]
@@ -490,6 +490,13 @@ to go
 
   if ticks mod 120 = 0 and ticks != 0
   [ check-taxi-demand ]
+
+  if ticks mod 30 = 0 and ticks != 0
+  [
+    ask people with [ not in-car? and not want-car? and count my-links = 0 ] [
+      setup-people-pos
+    ]
+  ]
 
   let time-of-day (ticks mod 1440)
   ask people [
@@ -945,7 +952,7 @@ SWITCH
 174
 ridesharing-allowed?
 ridesharing-allowed?
-0
+1
 1
 -1000
 
@@ -1085,7 +1092,7 @@ num-people
 num-people
 0
 300
-203
+13
 1
 1
 NIL
@@ -1205,6 +1212,17 @@ MONITOR
 430
 Taxis on Road
 count cars with [ car-type = \"Taxi\" ]
+17
+1
+11
+
+MONITOR
+524
+389
+638
+434
+dropped-people
+count people with [ color = black ]
 17
 1
 11
