@@ -796,11 +796,17 @@ to set-signal-colors  ;; intersection (patch) procedure
   ;ifelse ridesharing-allowed?
   ;[
     ifelse green-light-up? [
-      if (pxcor != 0) [ask patch-at -1 0 [ set pcolor red ]]
-      if (pycor != 30) [ask patch-at 0 1 [ set pcolor green ]]
+      if ((pxcor != 0 or pycor != 0) and (pxcor != 0 or pycor != 30) and (pxcor != 30 or pycor != 0) and (pxcor != 30 or pycor != 30)) [
+        if (pxcor != 0) [ask patch-at -1 0 [ set pcolor red ]]
+        if (pxcor != 30) [ask patch-at 1 0  [ set pcolor red ]]
+        if (pycor != 0) [ask patch-at 0 -1 [ set pcolor green ]]
+        if (pycor != 30) [ask patch-at 0 1  [ set pcolor green ]]]
     ] [
-      if (pxcor != 0) [ask patch-at -1 0 [ set pcolor green ]]
-      if (pycor != 30) [ask patch-at 0 1 [ set pcolor red ]]
+     if ((pxcor != 0 or pycor != 0) and (pxcor != 0 or pycor != 30) and (pxcor != 30 or pycor != 0) and (pxcor != 30 or pycor != 30)) [
+        if (pxcor != 0) [ask patch-at -1 0 [ set pcolor green ]]
+        if (pxcor != 30) [ask patch-at 1 0  [ set pcolor green ]]
+        if (pycor != 0) [ask patch-at 0 -1 [ set pcolor red ]]
+        if (pycor != 30) [ask patch-at 0 1  [ set pcolor red ]]]
     ]
   ;]
   ;[
@@ -812,7 +818,7 @@ end
 ;; set the turtles' speed based on whether they are at a red traffic light or the speed of the
 ;; turtle (if any) on the patch in front of them
 to set-car-speed  ;; turtle procedure
-  ifelse pcolor = red
+  ifelse (pcolor = red and ([pcolor] of patch-at -2 0 != red) and ([pcolor] of patch-at 2 0 != red) and ([pcolor] of patch-at 0 2 != red) and ([pcolor] of patch-at 0 -2 != red))
   [ set speed 0 ]
   [
     ifelse (heading = 0 or heading = 180)
@@ -952,7 +958,7 @@ SWITCH
 174
 ridesharing-allowed?
 ridesharing-allowed?
-1
+0
 1
 -1000
 
@@ -965,7 +971,7 @@ num-ubers
 num-ubers
 0
 30
-18
+0
 1
 1
 NIL
@@ -1047,7 +1053,7 @@ num-taxis
 num-taxis
 0
 15
-12
+1
 1
 1
 NIL
