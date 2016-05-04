@@ -107,12 +107,13 @@ to setup
     setup-taxis
     record-data
   ]
-
+  if ridesharing-allowed?
+  [
   create-cars num-ubers
   set ubers cars with [ car-type != "Taxi" ]
 
-  if ridesharing-allowed?
-  [
+
+
     ask ubers
     [
       setup-ubers
@@ -154,7 +155,7 @@ to setup-people
     set want-car? false
     set in-car? false
     set want-car-count 0
-    set max-cost random-normal ((cost-tolerance * 10 + 10) / 100 * 35) 7
+    set max-cost random-normal ((cost-tolerance * 10) / 100 * 35) 10
 end
 ;; Make the patches have appropriate colors, set up the roads and intersections agentsets,
 ;; and initialize the traffic lights to one setting
@@ -271,10 +272,10 @@ to setup-ubers
   set speed 0
   set wait-time 0
   set color black
-  put-on-empty-road
   set destination []
   set status "NO_PASSENGER"
   set car-type "Uber"
+  put-on-empty-road
 
   ifelse (xcor mod 6 = 0)   ;;set heading in directions
   [ ;; traveling vertically
@@ -481,8 +482,14 @@ to go
   ;; have the intersections change their color
   set-signals
   set num-cars-stopped 0
-  if ticks mod 60 = 0
+  if ticks mod 60 = 0 and ridesharing-allowed?
   [ update-surge-pricing ]
+
+  if ticks mod 120 = 0 and ticks != 0 and ridesharing-allowed?
+  [ check-uber-demand ]
+
+  if ticks mod 120 = 0 and ticks != 0
+  [ check-taxi-demand ]
 
   let time-of-day (ticks mod 1440)
   ask people [
@@ -531,22 +538,25 @@ to go
     ]
   ]
 
-  ask ubers [
-    ;; go through 3 statuses
-    ifelse (status = "CALLED" )
-    [
-      move-toward-destination destination
-      if (distancexy item 0 destination item 1 destination = 1)
-      [ pickup ] ;; also add pick-up command (tie and move)
-    ]
-    [
-      ifelse (status = "HAS_PASSENGER")
+  if ridesharing-allowed?
+  [
+    ask ubers [
+      ;; go through 3 statuses
+      ifelse (status = "CALLED" )
       [
         move-toward-destination destination
         if (distancexy item 0 destination item 1 destination = 1)
-        [ dropoff ] ;; drop-off command (unlink and place person on location grid (setxy one-of patches xcor ycor))
+        [ pickup ] ;; also add pick-up command (tie and move)
       ]
-      [ move-random ]
+      [
+        ifelse (status = "HAS_PASSENGER")
+        [
+          move-toward-destination destination
+          if (distancexy item 0 destination item 1 destination = 1)
+          [ dropoff ] ;; drop-off command (unlink and place person on location grid (setxy one-of patches xcor ycor))
+        ]
+        [ move-random ]
+      ]
     ]
   ]
 
@@ -649,6 +659,58 @@ to-report graduated-demand [ind]
     report (random 1000) < (1 * item ind weekday-traffic)
   ] [
     report (random 1000) < (1 * item ind weekend-traffic)
+  ]
+end
+
+to check-uber-demand
+  let num-people-want-uber count people with [
+    preferred-car = "Uber" and want-car? = true
+  ]
+  ;; survey for Uber availability
+  let available-ubers ubers with [ status = "NO_PASSENGER" ]
+
+  let amount num-people-want-uber - count available-ubers
+  type "Tick: " type ticks type " Amount: " print amount
+     ;; show num-people-want-uber
+     ;; show num-ubers-available
+     ;; show surge-pricing-ratio
+  ifelse (amount < 0)
+  [
+    ask n-of abs amount available-ubers [
+      die
+    ]
+  ]
+  [
+    create-cars amount [
+      setup-ubers
+    ]
+    set ubers cars with [car-type = "Uber"]
+  ]
+end
+
+to check-taxi-demand
+  let num-people-want-taxi count people with [
+    preferred-car = "Taxi" and want-car? = true
+  ]
+  ;; survey for Uber availability
+  let available-taxis taxis with [ status = "NO_PASSENGER" ]
+
+  let amount num-people-want-taxi - count available-taxis
+  type "Tick: " type ticks type " Amount: " print amount
+     ;; show num-people-want-uber
+     ;; show num-ubers-available
+     ;; show surge-pricing-ratio
+  ifelse (amount < 0)
+  [
+    ask n-of abs (amount / 5) available-taxis [
+      die
+    ]
+  ]
+  [
+    create-cars (amount / 5) [
+      setup-taxis
+    ]
+    set taxis cars with [car-type = "Taxi"]
   ]
 end
 
@@ -859,10 +921,10 @@ ticks
 30.0
 
 PLOT
-675
-351
-893
-515
+676
+183
+894
+347
 Average Wait Time of Cars
 Time
 Average Wait
@@ -875,24 +937,6 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot mean [wait-time] of taxis"
-
-PLOT
-676
-181
-892
-346
-Average Speed of Cars
-Time
-Average Speed
-0.0
-100.0
-0.0
-1.0
-true
-false
-"set-plot-y-range 0 speed-limit" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot mean [speed] of taxis"
 
 SWITCH
 11
@@ -913,8 +957,8 @@ SLIDER
 num-ubers
 num-ubers
 0
-100
-4
+30
+18
 1
 1
 NIL
@@ -995,8 +1039,8 @@ SLIDER
 num-taxis
 num-taxis
 0
-100
-20
+15
+12
 1
 1
 NIL
@@ -1026,7 +1070,7 @@ base-taxi-rate
 base-taxi-rate
 10
 15
-15
+10
 0.01
 1
 $
@@ -1040,8 +1084,8 @@ SLIDER
 num-people
 num-people
 0
-100
-100
+300
+203
 1
 1
 NIL
@@ -1056,7 +1100,7 @@ cost-tolerance
 cost-tolerance
 1
 10
-1
+4
 1
 1
 NIL
@@ -1071,7 +1115,7 @@ uber-preference
 uber-preference
 0
 10
-5
+7
 1
 1
 NIL
@@ -1084,7 +1128,7 @@ SWITCH
 218
 is_weekday?
 is_weekday?
-0
+1
 1
 -1000
 
@@ -1095,7 +1139,7 @@ MONITOR
 282
 want-car-count
 mean [want-car-count] of people
-17
+3
 1
 11
 
@@ -1128,6 +1172,39 @@ MONITOR
 495
 other-people
 count people with [ preferred-car = \"Other\" ]
+17
+1
+11
+
+MONITOR
+343
+442
+435
+487
+Ubers on Road
+count cars with [car-type = \"Uber\"]
+17
+1
+11
+
+MONITOR
+532
+428
+626
+473
+Empty Ubers
+count cars with [ status = \"NO_PASSENGER\" and car-type = \"Uber\" ]
+17
+1
+11
+
+MONITOR
+346
+385
+447
+430
+Taxis on Road
+count cars with [ car-type = \"Taxi\" ]
 17
 1
 11
