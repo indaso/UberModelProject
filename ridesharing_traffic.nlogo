@@ -54,6 +54,7 @@ people-own [
  want-car?
  in-car?
  want-car-count
+ max-cost
 ]
 
 patches-own
@@ -153,6 +154,7 @@ to setup-people
     set want-car? false
     set in-car? false
     set want-car-count 0
+    set max-cost random-normal ((cost-tolerance * 10 + 15) / 100 * 35) 10
 end
 ;; Make the patches have appropriate colors, set up the roads and intersections agentsets,
 ;; and initialize the traffic lights to one setting
@@ -301,11 +303,11 @@ to pick-car-type
 
   if (ridesharing-allowed? and preferred-car = "Uber")
   [
-    ifelse(surge-pricing-active?)
+    ifelse(uber-rate > taxi-rate)
     [
-      ifelse(uber-rate > taxi-rate)
-      [ set preferred-car "Taxi" set color blue + 2]
-      [ set preferred-car "Uber" set color green ]
+      ifelse(max-cost < taxi-rate)
+      [ set preferred-car "Taxi" set color blue + 2 ]
+      [ set want-car? false set color red set preferred-car "Other" stop ]
     ]
     [ set preferred-car "Uber" set color green ]
   ]
@@ -325,12 +327,12 @@ end
 
 to-report calculate-uber-rate
   let point get-dropoff-location-point [location] of self
-  report base-uber-rate + 0.4 * distancexy item 0 point item 1 point
+  report base-uber-rate + 0.5 * distancexy item 0 point item 1 point
 end
 
 to-report calculate-taxi-rate
   let point get-dropoff-location-point [location] of self
-  report base-taxi-rate + 0.4 * distancexy item 0 point item 1 point
+  report base-taxi-rate + distancexy item 0 point item 1 point
 end
 
 ;; initialize random num-people to wanting an uber
@@ -1048,13 +1050,13 @@ HORIZONTAL
 SLIDER
 11
 231
-124
+180
 264
 cost-tolerance
 cost-tolerance
 1
 10
-6
+10
 1
 1
 NIL
@@ -1069,7 +1071,7 @@ uber-preference
 uber-preference
 0
 10
-3
+5
 1
 1
 NIL
@@ -1093,6 +1095,28 @@ MONITOR
 282
 want-car-count
 mean [want-car-count] of people
+17
+1
+11
+
+MONITOR
+209
+306
+300
+351
+taxi-people
+count people with [ preferred-car = \"Taxi\" ]
+17
+1
+11
+
+MONITOR
+219
+378
+309
+423
+uber-people
+count people with [ preferred-car = \"Uber\" ]
 17
 1
 11
