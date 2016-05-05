@@ -1346,8 +1346,13 @@ Finally, one last suggestion would be to further incorporate real world traffic 
 
 ##SOURCES
 Do ridesharing services like Uber and Lyft create traffic jams? (Bruce, 2014)
+http://www.autoblog.com/2014/10/05/ridesharing-services-uber-lyft-create-traffic/
+
 Ridesharing Can Save Cities from Traffic Congestion (Hower, 2013)
+http://www.triplepundit.com/special/rise-of-the-sharing-economy/ridesharing-can-save-cities-traffic-congestion/
+
 Texas A&M Transportation Institute 2015 Urban Mobility Scorecard and Appendices
+http://mobility.tamu.edu/ums/report/
 @#$#@#$#@
 default
 true
