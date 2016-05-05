@@ -980,7 +980,7 @@ SWITCH
 174
 ridesharing-allowed?
 ridesharing-allowed?
-1
+0
 1
 -1000
 
@@ -1052,13 +1052,13 @@ NIL
 1
 
 SLIDER
-10
-275
-164
-308
+187
+232
+315
+265
 speed-limit
 speed-limit
-0.1
+1.0
 2
 1
 0.1
@@ -1075,17 +1075,17 @@ num-taxis
 num-taxis
 0
 15
-45
+15
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-10
-316
-185
-349
+12
+274
+187
+307
 base-uber-rate
 base-uber-rate
 5
@@ -1098,9 +1098,9 @@ HORIZONTAL
 
 SLIDER
 11
-358
-183
-391
+316
+187
+349
 base-taxi-rate
 base-taxi-rate
 10
@@ -1129,7 +1129,7 @@ HORIZONTAL
 SLIDER
 11
 231
-180
+175
 264
 cost-tolerance
 cost-tolerance
@@ -1150,16 +1150,16 @@ uber-preference
 uber-preference
 0
 10
-5
+10
 1
 1
 NIL
 HORIZONTAL
 
 SWITCH
-186
+188
 185
-318
+315
 218
 is_weekday?
 is_weekday?
@@ -1168,20 +1168,20 @@ is_weekday?
 -1000
 
 MONITOR
-193
-237
-304
-282
-want-car-count
+553
+403
+696
+448
+Average Car Demand
 mean [want-car-count] of people
 3
 1
 11
 
 MONITOR
-175
+565
 453
-326
+696
 498
 People who want Taxis
 count people with [ preferred-car = \"Taxi\" ]
@@ -1190,10 +1190,10 @@ count people with [ preferred-car = \"Taxi\" ]
 11
 
 MONITOR
-9
-453
-164
-498
+395
+452
+558
+497
 People who want Ubers
 count people with [ preferred-car = \"Uber\" ]
 17
@@ -1201,10 +1201,10 @@ count people with [ preferred-car = \"Uber\" ]
 11
 
 MONITOR
-7
-402
-171
-447
+396
+403
+547
+448
 People who want no cars
 count people with [ preferred-car = \"Other\" ]
 17
@@ -1212,10 +1212,10 @@ count people with [ preferred-car = \"Other\" ]
 11
 
 MONITOR
-200
-339
-292
-384
+705
+402
+806
+447
 Ubers on Road
 count cars with [car-type = \"Uber\"]
 17
@@ -1223,10 +1223,10 @@ count cars with [car-type = \"Uber\"]
 11
 
 MONITOR
-200
-391
-294
-436
+293
+402
+387
+447
 Empty Ubers
 count cars with [ status = \"NO_PASSENGER\" and car-type = \"Uber\" ]
 17
@@ -1234,10 +1234,10 @@ count cars with [ status = \"NO_PASSENGER\" and car-type = \"Uber\" ]
 11
 
 MONITOR
-200
-287
-301
-332
+705
+453
+806
+498
 Taxis on Road
 count cars with [ car-type = \"Taxi\" ]
 17
@@ -1245,10 +1245,10 @@ count cars with [ car-type = \"Taxi\" ]
 11
 
 MONITOR
-563
-453
-677
-498
+151
+402
+283
+447
 dropped-people
 count people with [ color = black ]
 17
@@ -1256,10 +1256,10 @@ count people with [ color = black ]
 11
 
 MONITOR
-335
-397
-466
-442
+257
+452
+388
+497
 Total Cars on Road
 total-num-cars
 17
@@ -1267,10 +1267,10 @@ total-num-cars
 11
 
 MONITOR
-336
-456
-440
-501
+146
+452
+250
+497
 NIL
 min-num-cars
 17
@@ -1278,10 +1278,10 @@ min-num-cars
 11
 
 MONITOR
-487
-396
-595
-441
+38
+403
+141
+448
 NIL
 max-num-cars
 17
@@ -1289,10 +1289,10 @@ max-num-cars
 11
 
 MONITOR
+38
 452
-455
-555
-500
+141
+497
 NIL
 avg-num-cars
 2
@@ -1300,118 +1300,54 @@ avg-num-cars
 11
 
 @#$#@#$#@
-## WHAT IS IT?
+Wendy Cheng, Jenny Hu, Isobeye Daso
+OIDD 325
+May 4, 2016
 
-This is a model of traffic moving in a city grid. It allows you to control traffic lights and global variables, such as the speed limit and the number of cars, and explore traffic dynamics.
+##Monitoring the Traffic Impact of Ridesharing Services
 
-Try to develop strategies to improve traffic and to understand the different ways to measure the quality of traffic.
+##MODEL OVERVIEW
+This model aims to simulate traffic congestion in a simplified city. The model consists of taxi cab, ridesharing car, and passenger agents. Passengers desire to travel to certain destinations within the city and choose to travel by taxi or ridesharing based on their preferences for ridesharing and their willingness to pay. Time of day will affect the demand and presence of cars, which is based on real world traffic data. The model measures the number of cars on the road at a given time across various simulations.
 
-## HOW IT WORKS
 
-Each time step, the cars attempt to move forward at their current speed.  If their current speed is less than the speed limit and there is no car directly in front of them, they accelerate.  If there is a slower car in front of them, they match the speed of the slower car and deccelerate.  If there is a red light or a stopped car in front of them, they stop.
+##MOTIVATION FOR THE MODEL
+We hope to investigate whether or not ridesharing increases traffic congestion. The main motivation is to study whether our simplified model supports claims by Uber that ridesharing does not significantly increase traffic congestion, or supports the opposite stance taken by established taxi companies. This topic of discussion to relevant to our team because we are all consumers of these different means of transportation. Knowing whether traffic congestion increases or decreases as a result of using Ubers, and therefore encouraging the business of Uber, can allow consumers to travel from one destination to another in an efficient manner at different times of the day.
 
-There are two different ways the lights can change.  First, the user can change any light at any time by making the light current, and then clicking CHANGE LIGHT.  Second, lights can change automatically, once per cycle.  Initially, all lights will automatically change at the beginning of each cycle.
+There is research that supports both positions. Ridesharing has pulled people away from mass transport options, resulting in more vehicles being on the road, which possibly boosts traffic congestion (Bruce, 2014). Alternatively, ridesharing efficiency makes use of otherwise empty seats in cars, this helping to reduce traffic congestion. Harvard Business Review estimates that “shifting about 15 percent of drive-alones to car sharing or ridesharing could save 757 million commuter-hours and about $21 billion in congestion costs annually” (Hower, 2013). Ridesharing cars also tend to carry more passengers on average than cabs: the average trip using ridesharing apps carried 1.8 people compared to the 1.1 with a cab (Bruce, 2014).
 
-## HOW TO USE IT
+We hypothesize that ridesharing does not result in greater traffic congestion because the same passengers who seek to travel to a certain destination would be on the road anyway in one  of the vehicles, whether taxi or ridesharing. We aim to analyze the findings of the model to see whether or not this stance is supported by the model.
 
-Change the traffic grid (using the sliders GRID-SIZE-X and GRID-SIZE-Y) to make the desired number of lights.  Change any other of the settings that you would like to change.  Press the SETUP button.
 
-At this time, you may configure the lights however you like, with any combination of auto/manual and any phase. Changes to the state of the current light are made using the CURRENT-AUTO?, CURRENT-PHASE and CHANGE LIGHT controls.  You may select the current intersection using the SELECT INTERSECTION control.  See below for details.
+##STRUCTURE & ORGANIZATION
+The model is a modification of the “Traffic Grid” NetLogo model, which models traffic moving within a city grid. The model provides the capability to control traffic lights and several global variables, such as the speed limit and number of cars. This model is great for expanding upon to explore further traffic dynamics.
 
-Start the simulation by pressing the GO button.  You may continue to make changes to the lights while the simulation is running.
+The agents in the model include taxi cabs, Uber cars, and passengers. The quantity of each of these agents can be adjusted in the model via sliders. The setup function of our model creates a grid of five by five blocks. The five locations are hardcoded as the top-left, top-right, bottom-left, bottom-right and center.  The number of taxis, Ubers and people are given random locations within the environment such that people are not on the road, and ubers and taxis are on one of the six vertical or six horizontal two way roads.
 
-### Buttons
+Taxis and Ubers have the states NO_PASSENGER and HAS_PASSENGER, and Ubers also have an additional state CALLED. Cars that are in a NO_PASSENGER state, are empty and move around the environment randomly, awaiting a person to want a ride. Cars that are in the state HAS_PASSENGER or CALLED, however, are given a destination and will travel to a destination. Once a person has decided they want a ride, whether it is an Uber or Taxi, he/she will move to their closest pickup point (the lower right corner of the block). If a person has decided to take a cab, that person will wait at a pick up point until an empty cab enters within a radius of four patches from the person. If a person decides to take an uber, that person is assigned an empty uber and awaits the uber at the pickup point. The procedure for Uber and taxi cars to get to their destination is to drive straight if they are not at an intersection (case 1), or choose a random path that takes the agent closer to the desired destination if the car is at an intersection (case 2).
+Each tick in the model represents one minute. Every hour, or every 60 ticks, we want to reevaluate the demand and supply to determine whether or not additional Uber cars are necessary. Ubers appear or disappear from the city based on demand.
 
-SETUP - generates a new traffic grid based on the current GRID-SIZE-X and GRID-SIZE-Y and NUM-CARS number of cars.  This also clears all the plots. All lights are set to auto, and all phases are set to 0.
-GO - runs the simulation indefinitely
-CHANGE LIGHT - changes the direction traffic may flow through the current light. A light can be changed manually even if it is operating in auto mode.
-SELECT INTERSECTION - allows you to select a new "current" light. When this button is depressed, click in the intersection which you would like to make current. When you've selected an intersection, the "current" label will move to the new intersection and this button will automatically pop up.
+Passengers are able to call a cab or an Uber, or decide to stay at home, based on the passenger’s ride preferences, to travel to their destination. Passenger agents have preferences for riding an Uber or a cab, as represented by the “Uber-preference” slider. On this Uber preference slider, 1 represents a strong preference for taxi cabs and 10 represents a strong preference for Ubers. There is also a willingness to pay slider, where 1 represents an unlikelihood to pay for high prices and 10 represents a likelihood to be willing to pay for high prices. Passengers prefer Uber if the cost to take an Uber is less than that of taking a taxi. Passengers prefer taxis if the cost to take a taxi is less than that of taking an Uber. The cost to take either an Uber or a taxi exceeds the passenger’s maximum cost tolerance, then the passenger will not want to take any car and “want-car?” will be set to false. Passengers who want to get a ride will move to the closest pickup point and get the closest car.
 
-### Sliders
+Passengers also have preferences on the destination that they would like to travel to. The destination preferences are randomized in the model. Every four hours (i.e. 240 ticks), weights will be set up for the various times of day for preferencing for a ride. Weights will be distributed appropriately so that the rides are demanded at hours of the day that reflect real world peak hours. There are two sets of weights that increase and decrease the passenger's decisions that they want a ride, one based on non-freeway weekday traffic distribution and one on non-freeway weekend traffic distribution. For example, ride demand at a time like 4 a.m. will not be very high. Weekday traffic is distinguished from weekend traffic and demand is correlated with simplified real world traffic volume.
 
-SPEED-LIMIT - sets the maximum speed for the cars
-NUM-CARS - the number of cars in the simulation (you must press the SETUP button to see the change)
-TICKS-PER-CYCLE - sets the number of ticks that will elapse for each cycle.  This has no effect on manual lights.  This allows you to increase or decrease the granularity with which lights can automatically change.
-GRID-SIZE-X - sets the number of vertical roads there are (you must press the SETUP button to see the change)
-GRID-SIZE-Y - sets the number of horizontal roads there are (you must press the SETUP button to see the change)
-CURRENT-PHASE - controls when the current light changes, if it is in auto mode. The slider value represents the percentage of the way through each cycle at which the light should change. So, if the TICKS-PER-CYCLE is 20 and CURRENT-PHASE is 75%, the current light will switch at tick 15 of each cycle.
+Passengers have a cost tolerance variable, which is based on the fare of the transportation method, and determines ride preference. Taxis have their own fare that is set by a slider in the model. Ubers have this baseline fare; however, Uber fares also factor in surge pricing. Surge pricing is a demand-driven scheme that causes Uber fare rates to automatically increase. Every hour (i.e. 60 ticks), the model checks for surge pricing. The surge pricing ratio, a global variable in the model, is calculated by dividing the number of people who want Ubers by the number of available Ubers. The numerator variable (num-people-want-uber) is a count of the passenger agents who have Uber as their ride preference and who are seeking to travel somewhere via Uber. The denominator variable (num-ubers-available) is a count of Ubers on the road who do not have passengers at a given time. If this ratio is greater than 1, then surge pricing is activated. This surge price is multiplied by the Uber fare rate to determine the actual Uber fare that is applied. For example, if there are twice as many of people who want Ubers than the number of Ubers available, then the surge pricing ratio would equal 2.0x. Therefore, the Uber fare would be doubled due to surge pricing.
 
-### Switches
+The main measure of performance for this model is the count of the number of cars on the road. The number of cars on the road is a direct measure of traffic congestion, relative to some baseline number of cars. Specifically, we are interested in the change in the number of total cars and how this correlates to the changes during peak hours, thus showing an increase or decrease in traffic congestion.
 
-POWER? - toggles the presence of traffic lights
-CURRENT-AUTO? - toggles the current light between automatic mode, where it changes once per cycle (according to CURRENT-PHASE), and manual, in which you directly control it with CHANGE LIGHT.
+##IMPROVEMENTS & EXTENSIONS
+One extension would be to include the possibility for passengers to split rides, modeling after services such as Lyft Line or Uber Pool, to further investigate the impact of ridesharing services on traffic congestion. This would entail having passengers who are traveling to the same destination to share the same vehicle. It would be interesting to see how this impacts the number of cars on the road.
 
-### Plots
+Another extension would be to investigate the impact of ridesharing on road safety by building in the potential for car accidents. Car accidents contribute to traffic congestion. One perspective is that due to an increased numbers of cars on the road, and more cars making sudden stops for passenger pickup, ridesharing services make roads less safe. Another perspective claims that services like Uber and Lyft make the roads safer because it decreases the number of drivers who decide to drive after drinking. 21% of respondents used the app to avoid drinking and driving, according to a relevant survey (Bruce, 2014).
 
-STOPPED CARS - displays the number of stopped cars over time
-AVERAGE SPEED OF CARS - displays the average speed of cars over time
-AVERAGE WAIT TIME OF CARS - displays the average time cars are stopped over time
+Another area of exploration could be to incorporate a more sophisticated algorithm for determining surge pricing for Ubers. This model uses a simplified multiple based on a linear function. One limitation of the model is that the fare of cabs and Ubers do not take distance traveled into account, unlike cabs and Ubers in reality. We chose not to incorporate this aspect when determining the cab fare due to the negligible nature of distance in this simplified city. There are only five locations, so we applied an assumption that the distances from place to place are more or less similar.
 
-## THINGS TO NOTICE
+Finally, one last suggestion would be to further incorporate real world traffic data by creating a type of car agent that corresponds to privately owned cars. As of now, our model is only concerned with taxi and uber car agents creating traffic congestion. The appearance of private vehicles would impact fare pricing and thus demand, as well as provide people agents an alternative mode of transportation. These cars could be made to appear and disappear proportional to the traffic data, thus making the model more closely resemble the real world.
 
-When cars have stopped at a traffic light, and then they start moving again, the traffic jam will move backwards even though the cars are moving forwards.  Why is this?
 
-When POWER? is turned off and there are quite a few cars on the roads, "gridlock" usually occurs after a while.  In fact, gridlock can be so severe that traffic stops completely.  Why is it that no car can move forward and break the gridlock?  Could this happen in the real world?
-
-Gridlock can occur when the power is turned on, as well.  What kinds of situations can lead to gridlock?
-
-## THINGS TO TRY
-
-Try changing the speed limit for the cars.  How does this affect the overall efficiency of the traffic flow?  Are fewer cars stopping for a shorter amount of time?  Is the average speed of the cars higher or lower than before?
-
-Try changing the number of cars on the roads.  Does this affect the efficiency of the traffic flow?
-
-How about changing the speed of the simulation?  Does this affect the efficiency of the traffic flow?
-
-Try running this simulation with all lights automatic.  Is it harder to make the traffic move well using this scheme than controlling one light manually?  Why?
-
-Try running this simulation with all lights automatic.  Try to find a way of setting the phases of the traffic lights so that the average speed of the cars is the highest.  Now try to minimize the number of stopped cars.  Now try to decrease the average wait time of the cars.  Is there any correlation between these different metrics?
-
-## EXTENDING THE MODEL
-
-Currently, the maximum speed limit (found in the SPEED-LIMIT slider) for the cars is 1.0.  This is due to the fact that the cars must look ahead the speed that they are traveling to see if there are cars ahead of them.  If there aren't, they speed up.  If there are, they slow down.  Looking ahead for a value greater than 1 is a little bit tricky.  Try implementing the correct behavior for speeds greater than 1.
-
-When a car reaches the edge of the world, it reappears on the other side.  What if it disappeared, and if new cars entered the city at random locations and intervals?
-
-## NETLOGO FEATURES
-
-This model uses two forever buttons which may be active simultaneously, to allow the user to select a new current intersection while the model is running.
-
-It also uses a chooser to allow the user to choose between several different possible plots, or to display all of them at once.
-
-## RELATED MODELS
-
-Traffic Basic simulates the flow of a single lane of traffic in one direction
-Traffic 2 Lanes adds a second lane of traffic
-Traffic Intersection simulates a single intersection
-
-The HubNet activity Gridlock has very similar functionality but allows a group of users to control the cars in a participatory fashion.
-
-## HOW TO CITE
-
-If you mention this model or the NetLogo software in a publication, we ask that you include the citations below.
-
-For the model itself:
-
-* Wilensky, U. (2003).  NetLogo Traffic Grid model.  http://ccl.northwestern.edu/netlogo/models/TrafficGrid.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-Please cite the NetLogo software as:
-
-* Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-## COPYRIGHT AND LICENSE
-
-Copyright 2003 Uri Wilensky.
-
-![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
-
-This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
-
-Commercial licenses are also available. To inquire about commercial licenses, please contact Uri Wilensky at uri@northwestern.edu.
-
-This model was created as part of the projects: PARTICIPATORY SIMULATIONS: NETWORK-BASED DESIGN FOR SYSTEMS LEARNING IN CLASSROOMS and/or INTEGRATED SIMULATION AND MODELING ENVIRONMENT. The project gratefully acknowledges the support of the National Science Foundation (REPP & ROLE programs) -- grant numbers REC #9814682 and REC-0126227.
-
-<!-- 2003 -->
+##SOURCES
+Do ridesharing services like Uber and Lyft create traffic jams? (Bruce, 2014)
+Ridesharing Can Save Cities from Traffic Congestion (Hower, 2013)
+Texas A&M Transportation Institute 2015 Urban Mobility Scorecard and Appendices
 @#$#@#$#@
 default
 true
@@ -1701,36 +1637,42 @@ NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="no-ubers" repetitions="5" runMetricsEveryStep="false">
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <timeLimit steps="1441"/>
-    <metric>total-num-cars</metric>
     <metric>avg-num-cars</metric>
     <metric>max-num-cars</metric>
-    <enumeratedValueSet variable="is_weekday?">
-      <value value="false"/>
-      <value value="true"/>
+    <metric>min-num-cars</metric>
+    <metric>total-num-cars</metric>
+    <enumeratedValueSet variable="num-people">
+      <value value="200"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="base-uber-rate">
-      <value value="5"/>
+    <enumeratedValueSet variable="uber-preference">
+      <value value="3"/>
+      <value value="6"/>
+      <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="ridesharing-allowed?">
+      <value value="true"/>
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="num-taxis">
-      <value value="45"/>
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="cost-tolerance">
+      <value value="3"/>
+      <value value="6"/>
+      <value value="9"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="num-ubers">
       <value value="30"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="num-people">
-      <value value="200"/>
+    <enumeratedValueSet variable="is_weekday?">
+      <value value="true"/>
+      <value value="false"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-tolerance">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="uber-preference">
+    <enumeratedValueSet variable="base-uber-rate">
       <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="speed-limit">
@@ -1740,19 +1682,24 @@ NetLogo 5.3
       <value value="10"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="ubers" repetitions="5" runMetricsEveryStep="false">
+  <experiment name="experiment" repetitions="10" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
-    <timeLimit steps="1441"/>
-    <metric>total-num-cars</metric>
+    <timeLimit steps="1442"/>
     <metric>avg-num-cars</metric>
     <metric>max-num-cars</metric>
-    <enumeratedValueSet variable="is_weekday?">
-      <value value="false"/>
-      <value value="true"/>
+    <metric>min-num-cars</metric>
+    <metric>total-num-cars</metric>
+    <enumeratedValueSet variable="num-people">
+      <value value="200"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="base-uber-rate">
-      <value value="5"/>
+    <enumeratedValueSet variable="uber-preference">
+      <value value="0"/>
+      <value value="2"/>
+      <value value="4"/>
+      <value value="6"/>
+      <value value="8"/>
+      <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="ridesharing-allowed?">
       <value value="true"/>
@@ -1760,96 +1707,20 @@ NetLogo 5.3
     <enumeratedValueSet variable="num-taxis">
       <value value="15"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="num-ubers">
-      <value value="30"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-people">
-      <value value="200"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-tolerance">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="uber-preference">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="speed-limit">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="base-taxi-rate">
-      <value value="10"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="ubers time metric" repetitions="1" runMetricsEveryStep="true">
-    <setup>setup</setup>
-    <go>go</go>
-    <timeLimit steps="1441"/>
-    <metric>num-cars-stopped</metric>
-    <metric>mean [wait-time] of cars</metric>
-    <enumeratedValueSet variable="is_weekday?">
-      <value value="false"/>
-      <value value="true"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="base-uber-rate">
       <value value="5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="ridesharing-allowed?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-taxis">
-      <value value="15"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-ubers">
-      <value value="30"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-people">
-      <value value="200"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="cost-tolerance">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="uber-preference">
       <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="speed-limit">
       <value value="1"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="base-taxi-rate">
-      <value value="10"/>
+    <enumeratedValueSet variable="num-ubers">
+      <value value="30"/>
     </enumeratedValueSet>
-  </experiment>
-  <experiment name="no-ubers time metric" repetitions="1" runMetricsEveryStep="true">
-    <setup>setup</setup>
-    <go>go</go>
-    <timeLimit steps="1441"/>
-    <metric>num-cars-stopped</metric>
-    <metric>mean [wait-time] of cars</metric>
     <enumeratedValueSet variable="is_weekday?">
       <value value="false"/>
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="base-uber-rate">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="ridesharing-allowed?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-taxis">
-      <value value="45"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-ubers">
-      <value value="30"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="num-people">
-      <value value="200"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-tolerance">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="uber-preference">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="speed-limit">
-      <value value="1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="base-taxi-rate">
       <value value="10"/>
