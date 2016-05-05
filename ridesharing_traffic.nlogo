@@ -514,7 +514,7 @@ to go
 
   if ticks mod 1440 = 0 and ticks != 0
   [
-    set total-num-cars count cars
+    set total-num-cars sum car-stat-list
     set avg-num-cars mean car-stat-list
     set max-num-cars max car-stat-list
     set min-num-cars min car-stat-list
@@ -971,7 +971,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot mean [wait-time] of taxis"
+"default" 1.0 0 -16777216 true "" "plot mean [wait-time] of cars"
 
 SWITCH
 11
@@ -993,7 +993,7 @@ num-ubers
 num-ubers
 0
 30
-0
+30
 1
 1
 NIL
@@ -1024,7 +1024,7 @@ BUTTON
 82
 Go
 go
-T
+NIL
 1
 T
 OBSERVER
@@ -1075,7 +1075,7 @@ num-taxis
 num-taxis
 0
 15
-1
+45
 1
 1
 NIL
@@ -1135,7 +1135,7 @@ cost-tolerance
 cost-tolerance
 1
 10
-10
+5
 1
 1
 NIL
@@ -1150,7 +1150,7 @@ uber-preference
 uber-preference
 0
 10
-7
+5
 1
 1
 NIL
@@ -1700,6 +1700,162 @@ NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="no-ubers" repetitions="5" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1441"/>
+    <metric>total-num-cars</metric>
+    <metric>avg-num-cars</metric>
+    <metric>max-num-cars</metric>
+    <enumeratedValueSet variable="is_weekday?">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="base-uber-rate">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ridesharing-allowed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-taxis">
+      <value value="45"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-ubers">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-people">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="cost-tolerance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="uber-preference">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="speed-limit">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="base-taxi-rate">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="ubers" repetitions="5" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1441"/>
+    <metric>total-num-cars</metric>
+    <metric>avg-num-cars</metric>
+    <metric>max-num-cars</metric>
+    <enumeratedValueSet variable="is_weekday?">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="base-uber-rate">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ridesharing-allowed?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-taxis">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-ubers">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-people">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="cost-tolerance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="uber-preference">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="speed-limit">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="base-taxi-rate">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="ubers time metric" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1441"/>
+    <metric>num-cars-stopped</metric>
+    <metric>mean [wait-time] of cars</metric>
+    <enumeratedValueSet variable="is_weekday?">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="base-uber-rate">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ridesharing-allowed?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-taxis">
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-ubers">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-people">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="cost-tolerance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="uber-preference">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="speed-limit">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="base-taxi-rate">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="no-ubers time metric" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1441"/>
+    <metric>num-cars-stopped</metric>
+    <metric>mean [wait-time] of cars</metric>
+    <enumeratedValueSet variable="is_weekday?">
+      <value value="false"/>
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="base-uber-rate">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ridesharing-allowed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-taxis">
+      <value value="45"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-ubers">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="num-people">
+      <value value="200"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="cost-tolerance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="uber-preference">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="speed-limit">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="base-taxi-rate">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
